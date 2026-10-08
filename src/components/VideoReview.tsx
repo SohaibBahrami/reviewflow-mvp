@@ -5,16 +5,18 @@ import { formatTime, relativeDate } from '../lib/format'
 interface Props {
   project: Project
   onBack: () => void
+  onClientPreview: () => void
   onUpdate: (project: Project) => void
 }
 
-export function VideoReview({ project, onBack, onUpdate }: Props) {
+export function VideoReview({ project, onBack, onClientPreview, onUpdate }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const [commentText, setCommentText] = useState('')
   const [currentTime, setCurrentTime] = useState(0)
   const [author, setAuthor] = useState('You')
+  const [copied, setCopied] = useState(false)
 
-  const openComments = useMemo(
+  const comments = useMemo(
     () => [...project.comments].sort((a, b) => a.timestamp - b.timestamp),
     [project.comments],
   )
@@ -43,8 +45,17 @@ export function VideoReview({ project, onBack, onUpdate }: Props) {
     })
   }
 
-  function approve() {
-    onUpdate({ ...project, status: 'approved' })
+  function createVersion() {
+    onUpdate({ ...project, version: project.version + 1, status: 'in_review', comments: [] })
+  }
+
+  async function copyClientLink() {
+    const url = new URL(window.location.href)
+    url.hash = `/share/${project.shareToken}`
+    if (!navigator.clipboard) return
+    await navigator.clipboard.writeText(url.toString())
+    setCopied(true)
+    window.setTimeout(() => setCopied(false), 1600)
   }
 
   function seekTo(seconds: number) {
@@ -58,14 +69,34 @@ export function VideoReview({ project, onBack, onUpdate }: Props) {
       <div className="review-header">
         <div>
           <button className="back-link" onClick={onBack}>← Back to projects</button>
-          <p className="eyebrow">Client review</p>
+          <p className="eyebrow">Editor review</p>
           <h1>{project.title}</h1>
-          <p className="hero-copy">{project.client} · Version {project.version}</p>
+          <p className="hero-copy">Client: {project.client} · Version {project.version}</p>
         </div>
         <div className="review-actions">
-          <button className="button button-secondary" onClick={() => navigator.clipboard?.writeText(window.location.href)}>Copy review link</button>
-          <button className="button button-primary" onClick={approve}>✓ Approve version</button>
+          <button className="button button-secondary" onClick={onClientPreview}>Preview as client</button>
+          <button className="button button-primary" onClick={copyClientLink} disabled={!navigator.clipboard}>
+            {copied ? 'Review link copied' : 'Copy review link'}
+          </button>
+          <button className="button button-secondary" onClick={createVersion}>Start next version</button>
         </div>
+      </div>
+
+      <div className="review-guide" aria-label="Review workflow">
+        <div><strong>1</strong><span>Review the video</span></div>
+        <div><strong>2</strong><span>Resolve feedback</span></div>
+        <div><strong>3</strong><span>Send the review link</span></div>
+      </div>
+
+      <div className="status-banner">
+        <span className={project.status === 'approved' ? 'pill success' : 'pill'}>
+          {project.status === 'approved' ? 'Approved by client' : 'Waiting for client'}
+        </span>
+        <span className="muted">
+          {project.status === 'approved'
+            ? 'This version is approved. Start a new version if you need more changes.'
+            : 'Preview the client view, then copy the review link and send it to your client. This prototype link works only in this browser; cloud sharing comes next.'}
+        </span>
       </div>
 
       <div className="review-layout">
@@ -82,10 +113,10 @@ export function VideoReview({ project, onBack, onUpdate }: Props) {
             <div className="video-empty">
               <div className="play-badge">▶</div>
               <h3>No video uploaded</h3>
-              <p>For now, you can still test the review workflow using the demo comments.</p>
+              <p>You can still test comments, timestamps, versioning, and the client preview without a video file.</p>
             </div>
           )}
-          <div className="time-chip">Current time: {formatTime(currentTime)}</div>
+          <div className="time-chip">Feedback time: {formatTime(currentTime)}</div>
         </div>
 
         <aside className="comments-panel">
@@ -94,14 +125,11 @@ export function VideoReview({ project, onBack, onUpdate }: Props) {
               <p className="eyebrow">Feedback</p>
               <h2>{project.comments.length} comments</h2>
             </div>
-            <span className={project.status === 'approved' ? 'pill success' : 'pill'}>
-              {project.status === 'approved' ? 'Approved' : 'Awaiting approval'}
-            </span>
           </div>
 
           <div className="comment-list">
-            {openComments.length === 0 && <p className="muted">No feedback yet. Add the first comment below.</p>}
-            {openComments.map((comment) => (
+            {comments.length === 0 && <p className="muted">No feedback yet. Add a note at the current video time.</p>}
+            {comments.map((comment) => (
               <article key={comment.id} className={comment.status === 'resolved' ? 'comment resolved' : 'comment'}>
                 <button className="timestamp" onClick={() => seekTo(comment.timestamp)}>
                   {formatTime(comment.timestamp)}
@@ -122,10 +150,10 @@ export function VideoReview({ project, onBack, onUpdate }: Props) {
 
           <form className="comment-form" onSubmit={addComment}>
             <input value={author} onChange={(e) => setAuthor(e.target.value)} placeholder="Your name" aria-label="Your name" />
-            <textarea value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="What should change here?" rows={3} />
+            <textarea value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="What needs to change?" rows={3} />
             <div className="comment-form-footer">
-              <span className="muted">Timestamped at {formatTime(currentTime)}</span>
-              <button className="button button-primary" type="submit">Add comment</button>
+              <span className="muted">Pinned to {formatTime(currentTime)}</span>
+              <button className="button button-primary" type="submit">Add feedback</button>
             </div>
           </form>
         </aside>

@@ -17,6 +17,7 @@ export function NewProject({ onCreate }: { onCreate: (project: Project) => void 
       status: 'in_review',
       version: 1,
       createdAt: new Date().toISOString(),
+      shareToken: crypto.randomUUID(),
       localVideoUrl: file ? URL.createObjectURL(file) : undefined,
       comments: [],
     }
@@ -25,26 +26,32 @@ export function NewProject({ onCreate }: { onCreate: (project: Project) => void 
 
   return (
     <section className="narrow-page">
-      <p className="eyebrow">New review</p>
-      <h1>Start a clean client review.</h1>
-      <p className="hero-copy">This first prototype keeps everything in your browser. We add cloud storage after the workflow feels right.</p>
+      <button className="back-link" onClick={() => { window.location.hash = '#/' }}>← Back to projects</button>
+      <p className="eyebrow">Create project</p>
+      <h1>Start a client review.</h1>
+      <p className="hero-copy">
+        Add the project details and your current video. After that, you can review the cut yourself or switch to the client view to test the approval flow.
+      </p>
 
       <form className="form-card" onSubmit={submit}>
         <label>
           Project name
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Launch video — v1" autoFocus />
+          <span className="field-help">Use the name your client will recognize.</span>
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Launch video" autoFocus />
         </label>
         <label>
           Client name
+          <span className="field-help">This is shown on the project and client review.</span>
           <input value={client} onChange={(e) => setClient(e.target.value)} placeholder="Northstar Coffee" />
         </label>
         <label>
-          Video file <span className="muted">(optional for now)</span>
+          Video file
+          <span className="field-help">Optional in this prototype. The selected video stays in this browser.</span>
           <input type="file" accept="video/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
         </label>
         <div className="form-actions">
-          <button className="button button-primary" type="submit">Create review</button>
-          {file && <span className="muted">{file.name}</span>}
+          <button className="button button-primary" type="submit">Create project</button>
+          {file && <span className="muted">Selected: {file.name}</span>}
         </div>
       </form>
     </section>

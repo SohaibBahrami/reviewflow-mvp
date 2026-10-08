@@ -13,55 +13,66 @@ export function Dashboard({ projects, onNew, onOpen }: Props) {
     (sum, project) => sum + project.comments.filter((comment) => comment.status === 'open').length,
     0,
   )
+  const approvedCount = projects.filter((p) => p.status === 'approved').length
 
   return (
     <section>
       <div className="hero-row">
         <div>
-          <p className="eyebrow">Your review desk</p>
-          <h1>Get feedback without the 14-message WhatsApp thread.</h1>
+          <p className="eyebrow">Projects</p>
+          <h1>Keep every client review in one place.</h1>
           <p className="hero-copy">
-            Upload a cut, send one clean link, collect timestamped comments, and get a clear approval.
+            Create a project, upload a cut, send your client a review link, and keep every comment tied to the video.
           </p>
         </div>
-        <button className="button button-primary" onClick={onNew}>+ New project</button>
+        <button className="button button-primary" onClick={onNew}>Create project</button>
       </div>
 
-      <div className="stat-grid">
-        <div className="stat-card"><span>Active reviews</span><strong>{activeCount}</strong></div>
-        <div className="stat-card"><span>Open comments</span><strong>{openComments}</strong></div>
-        <div className="stat-card"><span>Approved</span><strong>{projects.filter((p) => p.status === 'approved').length}</strong></div>
+      <div className="stat-grid" aria-label="Project summary">
+        <div className="stat-card"><span>Projects in review</span><strong>{activeCount}</strong></div>
+        <div className="stat-card"><span>Open feedback</span><strong>{openComments}</strong></div>
+        <div className="stat-card"><span>Approved projects</span><strong>{approvedCount}</strong></div>
       </div>
 
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Projects</p>
-          <h2>Recent work</h2>
+          <p className="eyebrow">Your projects</p>
+          <h2>Recent projects</h2>
         </div>
-        <span className="muted">Local prototype — nothing leaves your device</span>
+        <span className="muted">Open a project to review feedback or preview the client view.</span>
       </div>
 
-      <div className="project-grid">
-        {projects.map((project) => {
-          const pending = project.comments.filter((comment) => comment.status === 'open').length
-          return (
-            <button key={project.id} className="project-card" onClick={() => onOpen(project.id)}>
-              <div className="project-topline">
-                <span className={project.status === 'approved' ? 'pill success' : 'pill'}>
-                  {project.status === 'approved' ? 'Approved' : 'In review'}
-                </span>
-                <span className="muted">v{project.version}</span>
-              </div>
-              <div className="project-title">{project.title}</div>
-              <div className="project-client">{project.client}</div>
-              <div className="project-meta">
-                <span>{pending} open comment{pending === 1 ? '' : 's'}</span>
-                <span>{relativeDate(project.createdAt)}</span>
-              </div>
-            </button>
-          )
-        })}
-      </div>
+      {projects.length === 0 ? (
+        <div className="empty-state">
+          <div className="empty-state-icon" aria-hidden="true">+</div>
+          <h3>No projects yet</h3>
+          <p>Create your first project and start a client review. You can test the whole workflow in this browser.</p>
+          <button className="button button-primary" onClick={onNew}>Create your first project</button>
+        </div>
+      ) : (
+        <div className="project-grid">
+          {projects.map((project) => {
+            const pending = project.comments.filter((comment) => comment.status === 'open').length
+            const resolved = project.comments.filter((comment) => comment.status === 'resolved').length
+            const statusLabel = project.status === 'approved' ? 'Approved' : 'In review'
+            return (
+              <button key={project.id} className="project-card" onClick={() => onOpen(project.id)}>
+                <div className="project-topline">
+                  <span className={project.status === 'approved' ? 'pill success' : 'pill'}>{statusLabel}</span>
+                  <span className="muted">Version {project.version}</span>
+                </div>
+                <div className="project-title">{project.title}</div>
+                <div className="project-client">Client: {project.client}</div>
+                <div className="project-meta">
+                  <span>{pending} open · {resolved} resolved</span>
+                  <span>{relativeDate(project.createdAt)}</span>
+                </div>
+                <div className="project-card-action">Open review <span aria-hidden="true">→</span></div>
+              </button>
+            )
+          })}
+        </div>
+      )}
     </section>
   )
 }
