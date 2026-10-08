@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
+import { ClientReview } from './components/ClientReview'
 import { Dashboard } from './components/Dashboard'
 import { NewProject } from './components/NewProject'
 import { Shell } from './components/Shell'
 import { VideoReview } from './components/VideoReview'
 import { loadProjects, saveProjects } from './lib/storage'
+import { applyTheme, getTheme, toggleTheme, type Theme } from './lib/theme'
 import type { Project } from './lib/types'
 
 function getRoute() {
@@ -16,6 +18,12 @@ function getRoute() {
 export default function App() {
   const [route, setRoute] = useState(getRoute)
   const [projects, setProjects] = useState<Project[]>(loadProjects)
+  const [theme, setTheme] = useState<Theme>(() => getTheme())
+
+  useEffect(() => {
+    applyTheme(theme)
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'light' ? '#f5f6fa' : '#0f1115')
+  }, [theme])
 
   useEffect(() => {
     const onHashChange = () => setRoute(getRoute())
@@ -46,7 +54,9 @@ export default function App() {
   let page: React.ReactNode
 
   if (route.path === '/review' && project) {
-    page = <VideoReview project={project} onBack={() => navigate('/')} onUpdate={updateProject} />
+    page = <VideoReview project={project} onBack={() => navigate('/')} onClientPreview={() => navigate(`/client/${project.id}`)} onUpdate={updateProject} />
+  } else if (route.path === '/client' && project) {
+    page = <ClientReview project={project} onBack={() => navigate(`/review/${project.id}`)} onUpdate={updateProject} />
   } else if (route.path === '/new') {
     page = <NewProject onCreate={createProject} />
   } else if (route.path === '/') {
@@ -55,5 +65,14 @@ export default function App() {
     page = <Dashboard projects={projects} onNew={() => navigate('/new')} onOpen={(id) => navigate(`/review/${id}`)} />
   }
 
-  return <Shell active={route.path} onNavigate={navigate}>{page}</Shell>
+  return (
+    <Shell
+      active={route.path}
+      theme={theme}
+      onNavigate={navigate}
+      onToggleTheme={() => setTheme((current) => toggleTheme(current))}
+    >
+      {page}
+    </Shell>
+  )
 }
