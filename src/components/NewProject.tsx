@@ -17,6 +17,7 @@ export function NewProject({ onCreate }: { onCreate: (project: Project) => void 
       status: 'in_review',
       version: 1,
       createdAt: new Date().toISOString(),
+      shareToken: crypto.randomUUID(),
       localVideoUrl: file ? URL.createObjectURL(file) : undefined,
       comments: [],
     }
@@ -43,14 +44,19 @@ export function NewProject({ onCreate }: { onCreate: (project: Project) => void 
           <span className="field-help">This is shown on the project and client review.</span>
           <input value={client} onChange={(e) => setClient(e.target.value)} placeholder="Northstar Coffee" />
         </label>
-        <label>
-          Video file
+        <div className="upload-field">
+          <span className="upload-label">Video file</span>
           <span className="field-help">Optional in this prototype. The selected video stays in this browser.</span>
-          <input type="file" accept="video/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
-        </label>
+          <label className="file-picker">
+            <input type="file" accept="video/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+            <span className="file-picker-icon">↑</span>
+            <span>Choose a video</span>
+            <span className="file-picker-meta">{file ? 'Change file' : 'MP4, MOV, WebM'}</span>
+          </label>
+          {file && <div className="selected-file">Selected video <strong>{file.name}</strong></div>}
+        </div>
         <div className="form-actions">
           <button className="button button-primary" type="submit">Create project</button>
-          {file && <span className="muted">Selected: {file.name}</span>}
         </div>
       </form>
     </section>

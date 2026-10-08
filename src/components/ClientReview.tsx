@@ -1,15 +1,17 @@
 import { useMemo, useRef, useState } from 'react'
 import type { Project } from '../lib/types'
 import { formatTime, relativeDate } from '../lib/format'
+import { VideoPlayer, type VideoPlayerHandle } from './VideoPlayer'
 
 interface Props {
   project: Project
-  onBack: () => void
+  onBack?: () => void
   onUpdate: (project: Project) => void
+  standalone?: boolean
 }
 
-export function ClientReview({ project, onBack, onUpdate }: Props) {
-  const videoRef = useRef<HTMLVideoElement | null>(null)
+export function ClientReview({ project, onBack, onUpdate, standalone = false }: Props) {
+  const videoRef = useRef<VideoPlayerHandle | null>(null)
   const [commentText, setCommentText] = useState('')
   const [currentTime, setCurrentTime] = useState(0)
   const [author, setAuthor] = useState(project.client)
@@ -41,19 +43,18 @@ export function ClientReview({ project, onBack, onUpdate }: Props) {
   }
 
   function seekTo(seconds: number) {
-    if (!videoRef.current) return
-    videoRef.current.currentTime = seconds
-    videoRef.current.play().catch(() => undefined)
+    videoRef.current?.seek(seconds)
   }
 
   return (
     <section className="client-review-page">
       <div className="review-header">
         <div>
-          <button className="back-link" onClick={onBack}>← Exit client preview</button>
+          {onBack && <button className="back-link" onClick={onBack}>← Exit client preview</button>}
           <p className="eyebrow">Client review</p>
           <h1>{project.title}</h1>
-          <p className="hero-copy">Version {project.version} · Your feedback goes directly onto the video timeline.</p>
+          <p className="hero-copy">Version {project.version} · Leave feedback at a specific moment or approve the video when you're happy.</p>
+          {standalone && <p className="shared-review-note">You are reviewing a client link. No account is needed for this prototype.</p>}
         </div>
         <div className="review-actions">
           <span className={project.status === 'approved' ? 'pill success' : 'pill'}>
@@ -74,13 +75,7 @@ export function ClientReview({ project, onBack, onUpdate }: Props) {
       <div className="review-layout">
         <div className="video-panel">
           {project.localVideoUrl ? (
-            <video
-              ref={videoRef}
-              className="video-player"
-              src={project.localVideoUrl}
-              controls
-              onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
-            />
+            <VideoPlayer ref={videoRef} src={project.localVideoUrl} onTimeChange={setCurrentTime} />
           ) : (
             <div className="video-empty">
               <div className="play-badge">▶</div>
@@ -88,7 +83,6 @@ export function ClientReview({ project, onBack, onUpdate }: Props) {
               <p>The editor has not added a video file yet. You can still test the feedback and approval flow here.</p>
             </div>
           )}
-          <div className="time-chip">Feedback time: {formatTime(currentTime)}</div>
         </div>
 
         <aside className="comments-panel">
@@ -127,7 +121,7 @@ export function ClientReview({ project, onBack, onUpdate }: Props) {
               <textarea value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="e.g. Make this shot a little shorter" rows={3} />
             </label>
             <div className="comment-form-footer">
-              <span className="muted">Pinned to {formatTime(currentTime)}</span>
+              <span className="feedback-time"><span>Feedback time</span>{formatTime(currentTime)}</span>
               <button className="button button-primary" type="submit">Send feedback</button>
             </div>
           </form>
