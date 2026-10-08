@@ -17,6 +17,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, Props>(function VideoPl
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const [volume, setVolume] = useState(1)
+  const [lastAudibleVolume, setLastAudibleVolume] = useState(1)
 
   useImperativeHandle(ref, () => ({
     seek(seconds: number) {
@@ -53,7 +54,26 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, Props>(function VideoPl
 
   function setAudio(value: number) {
     setVolume(value)
-    if (videoRef.current) videoRef.current.volume = value
+    if (value > 0) setLastAudibleVolume(value)
+    if (videoRef.current) {
+      videoRef.current.volume = value
+      videoRef.current.muted = value === 0
+    }
+  }
+
+  function toggleMute() {
+    if (!videoRef.current) return
+    if (videoRef.current.muted || volume === 0) {
+      const next = lastAudibleVolume || 1
+      videoRef.current.muted = false
+      videoRef.current.volume = next
+      setVolume(next)
+      return
+    }
+    setLastAudibleVolume(volume)
+    videoRef.current.muted = true
+    videoRef.current.volume = 0
+    setVolume(0)
   }
 
   async function toggleFullscreen() {
@@ -74,6 +94,9 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, Props>(function VideoPl
         src={src}
         playsInline
         preload="metadata"
+        controlsList="nodownload noremoteplayback"
+        disablePictureInPicture
+        onContextMenu={(event) => event.preventDefault()}
         onLoadedMetadata={(event) => setDuration(event.currentTarget.duration || 0)}
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
@@ -96,9 +119,11 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, Props>(function VideoPl
         <button type="button" className="video-control-button" onClick={() => seekBy(5)} aria-label="Go forward 5 seconds">
           +5
         </button>
-        <span className="video-time">{formatTime(currentTime)} / {formatTime(duration)}</span>
+        <span className="video-time" aria-label={`Current playback time ${formatTime(currentTime)} of ${formatTime(duration)}`}>
+          {formatTime(currentTime)} / {formatTime(duration)}
+        </span>
         <input
-          className="video-progress"
+          className="video-range video-progress"
           type="range"
           min="0"
           max={duration || 0}
@@ -108,17 +133,22 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, Props>(function VideoPl
           aria-label="Video progress"
           disabled={!duration}
         />
-        <label className="video-volume" aria-label="Video volume">
-          <span aria-hidden="true">{volume === 0 ? '×' : '◖'}</span>
+        <div className="video-volume-control">
+          <button type="button" className="video-volume-button" onClick={toggleMute}>
+            {volume === 0 ? 'Unmute' : 'Mute'}
+          </button>
           <input
+            className="video-range video-volume-range"
             type="range"
             min="0"
             max="1"
-            step="0.05"
+            step="0.01"
             value={volume}
             onChange={(event) => setAudio(Number(event.target.value))}
+            aria-label="Volume"
+            aria-valuetext={volume === 0 ? 'Muted' : `${Math.round(volume * 100)} percent`}
           />
-        </label>
+        </div>
         <button type="button" className="video-control-button" onClick={toggleFullscreen} aria-label="Toggle fullscreen">
           ⛶
         </button>

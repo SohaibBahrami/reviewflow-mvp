@@ -56,3 +56,115 @@ A freelancer should be able to create a project and receive useful client feedba
 This project is being built as an experiment in creating and shipping a useful product with free AI tools. The primary coding and product-development work in this repository was generated with **GPT-5.6 Luna**, with the human developer directing the product decisions, reviewing results, running the application, and reporting bugs.
 
 The repository intentionally documents this process so the experiment is reproducible and transparent about the role of AI in development.
+
+## 2026-10-08 — Theme system and two-sided review workflow
+
+### Theme
+
+- Dark mode remains the default.
+- The initial theme is chosen from a saved user preference when available, otherwise from the browser's `prefers-color-scheme` setting.
+- The choice is stored in `localStorage` so it survives reloads.
+- An inline theme bootstrap in `index.html` applies the theme before the React app loads, preventing the light-mode flash seen in the earlier project.
+- Added a light/dark toggle and a ReviewFlow favicon using the product mark.
+
+### Review workflow milestone
+
+The local prototype now has both sides of the core workflow:
+
+```text
+Editor creates project
+        ↓
+Editor reviews + resolves comments
+        ↓
+Editor opens client preview / copies client link
+        ↓
+Client watches + leaves timestamped feedback
+        ↓
+Client approves the version
+        ↓
+Editor can create the next version
+```
+
+`New version` currently increments the version number, returns the project to `in_review`, and clears the previous version's comments. The local prototype still uses the same browser-only video object; cloud versioned storage comes later with R2.
+
+### Validation note
+
+The implementation was checked at the source level in this environment. A full `npm install` did not complete within the available execution window, so a fresh production build was not claimed as verified here.
+
+
+## 2026-10-08 — Product UX clarification pass
+
+### Problem
+
+The core workflow worked, but several screens still used product-development language instead of language a first-time client or editor would naturally understand. The client preview also exposed editor navigation, and the local prototype's copied URL could sound like a real public share link.
+
+### Decision
+
+Make the interface task-oriented and self-explanatory without adding a tutorial. Use short guidance directly where the user needs it, make editor/client roles visually distinct, and describe prototype limitations honestly.
+
+### Changes
+
+- Renamed navigation to `Projects` and `Create project`.
+- Rewrote dashboard copy and project cards around the user's actual tasks.
+- Added a clearer empty state.
+- Added field-level help when creating a project.
+- Added three-step workflow guidance to editor and client review screens.
+- Removed editor-only navigation from client preview mode.
+- Renamed review actions to describe their outcome.
+- Clarified that the copied preview URL is local-only in the current prototype.
+- Added an explicit `Client review` indicator in client mode.
+
+### Branching
+
+This milestone was developed on `feature/clarify-product-ux` with separate commits, then merged back into `main`. This is the first milestone using the repository's branch workflow.
+
+
+## 2026-10-08 — Review links
+
+Added stable per-project review tokens and a standalone client-review route. The editor can now copy a review link that opens directly in the client experience. The prototype still stores data locally, so the link only resolves in the same browser; cloud persistence and cross-device sharing are the next backend milestone.
+
+
+## 2026-10-08 — Video review controls and feedback positioning
+
+### Problem
+
+The browser-native video controls were functional but visually inconsistent with the product, the upload field looked like an unstyled browser control, and the live feedback timestamp sat on top of the video controls.
+
+### Decision
+
+Keep the browser's native HTML5 video playback engine, but build a small custom control bar around it rather than introducing a heavyweight video-player dependency. Move the current feedback timestamp into the comment composer so it never covers the video's timeline.
+
+### Changes
+
+- Added lightweight play/pause, ±5 second seek, progress, volume, and fullscreen controls.
+- Kept `preload=metadata` and the native `<video>` element for efficient playback.
+- Replaced the browser-default file input with a styled video picker and selected-file state.
+- Removed the timestamp overlay from the video.
+- Added a dedicated `Feedback time` indicator beside the feedback action.
+
+### Validation note
+
+`git diff --check` passed. A fresh dependency install timed out in the execution environment, so a production build was not claimed as verified.
+
+### Dependency choice
+
+This milestone adds no runtime dependency. The custom video controls use the browser's existing HTML5 media APIs so playback stays lightweight.
+
+
+## 2026-10-08 — Video control polish and media protection decision
+
+### Video controls
+
+- Reworked the volume control to remove the confusing glyph and use an explicit `Mute` / `Unmute` action.
+- Replaced browser-dependent range styling with a controlled slider so the thumb reaches the full track.
+- Made the review timestamp visually prominent with `Will submit at 00:14`, making it obvious that the current video time is the timestamp attached to the submitted feedback.
+- Kept the player lightweight: native HTML5 playback, no new runtime dependency.
+- Added browser-level download/remote-playback restrictions and disabled the player context menu as deterrents. These are UX/security layers, not absolute content protection.
+
+### Media protection decision
+
+The prototype exposed a local video directly to the browser. That is acceptable for local testing but not for a paid review product where the uploaded work may be confidential.
+
+For the production video path, the architecture now favors Cloudflare Stream over raw MP4 delivery from R2. Stream provides encoding, HLS/DASH playback, signed tokens, allowed origins, and optional watermarking. The application will use short-lived signed playback tokens for review links and will not grant download access by default.
+
+The product cannot guarantee that a viewer cannot screen-record a video once it is visible on their device. The practical protection strategy is to remove easy download paths, keep source URLs non-public, expire access, restrict the playback origin, and add client-specific visible watermarking so unauthorized recordings are attributable.
