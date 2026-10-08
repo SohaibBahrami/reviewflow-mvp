@@ -229,3 +229,25 @@ in review → approved → completed
 - Starting a new version reopens a completed project automatically.
 
 No dependency was added for this milestone.
+
+## 2026-10-08 — Project trash and undo
+
+### Decision
+
+Deletion is now reversible by default. The editor moves projects to Trash instead of immediately destroying them. A short-lived Undo action covers accidental clicks, while Trash provides a deliberate recovery place for older deletions.
+
+### Changes
+
+- Replaced the browser's native delete confirmation with a ReviewFlow confirmation dialog.
+- Deleting a project moves it to `trashed` instead of immediately removing it.
+- Added an eight-second Undo action after moving a project to Trash.
+- Added a dedicated Trash area in the main navigation with a trash-can icon and count.
+- Added Restore project for deleted projects.
+- Added a separate permanent-delete confirmation that removes the project and its browser-local video.
+- Revoked active object URLs when a project enters Trash so deleted projects do not keep video memory alive.
+- Prevented trashed projects from resolving through their review links.
+- Kept completed projects separate from Trash.
+
+### Dependency choice
+
+No runtime dependency was added. Confirmation, toast, timers, and the Trash view are implemented with React and browser APIs already in the project.

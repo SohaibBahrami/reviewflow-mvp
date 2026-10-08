@@ -243,3 +243,31 @@ input:focus, textarea:focus { border-color: #aaaef1; box-shadow: 0 0 0 4px rgba(
   .app-notice-inner { align-items: flex-start; }
   .project-card-actions { flex-direction: column; }
 }
+
+/* Project trash and undo */
+:root { --danger: #ee6a78; --danger-soft: #3a1e25; }
+:root[data-theme='light'] { --danger: #c53f50; --danger-soft: #fff0f2; }
+.nav-link-icon { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-width: 42px; }
+.nav-icon { width: 17px; height: 17px; display: block; }
+.nav-count { min-width: 18px; height: 18px; display: inline-grid; place-items: center; border-radius: 999px; padding: 0 5px; background: var(--accent-soft); color: var(--accent-strong); font-size: 10px; font-weight: 800; }
+.pill.completed { background: color-mix(in srgb, var(--success) 11%, var(--surface)); color: var(--success); }
+.pill.trashed { background: var(--danger-soft); color: var(--danger); }
+.trashed-card { opacity: .9; }
+.trashed-card:hover { opacity: 1; }
+.modal-backdrop { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 24px; background: rgba(0, 0, 0, .58); backdrop-filter: blur(8px); }
+.confirm-dialog { width: min(100%, 480px); background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 24px; padding: 28px; box-shadow: 0 28px 80px rgba(0, 0, 0, .35); }
+.confirm-dialog-icon { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 13px; margin-bottom: 20px; background: var(--accent-soft); color: var(--accent-strong); font-size: 18px; font-weight: 900; }
+.confirm-dialog h2 { font-size: 30px; line-height: 1.08; }
+.confirm-dialog-copy { color: var(--muted); line-height: 1.6; margin: 12px 0 24px; }
+.confirm-dialog-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.confirm-dialog .button-danger { background: var(--danger-soft); }
+.undo-toast { position: fixed; right: 22px; bottom: 22px; z-index: 90; display: flex; align-items: center; gap: 14px; padding: 11px 12px 11px 15px; border: 1px solid var(--border); border-radius: 15px; background: var(--surface); color: var(--text); box-shadow: var(--shadow); font-size: 13px; }
+.undo-toast button { border: 0; background: var(--accent-soft); color: var(--accent-strong); padding: 8px 10px; border-radius: 10px; font-weight: 800; }
+.undo-toast button strong { font-variant-numeric: tabular-nums; }
+
+@media (max-width: 700px) {
+  .undo-toast { right: 12px; left: 12px; bottom: 12px; justify-content: space-between; }
+  .confirm-dialog { padding: 24px; }
+  .confirm-dialog-actions { flex-direction: column-reverse; }
+  .confirm-dialog-actions .button { width: 100%; }
+}

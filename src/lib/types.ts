@@ -13,8 +13,10 @@ export interface Project {
   id: string
   title: string
   client: string
-  status: 'in_review' | 'approved' | 'completed'
+  status: 'in_review' | 'approved' | 'completed' | 'trashed'
   completedAt?: string
+  trashedAt?: string
+  statusBeforeTrash?: 'in_review' | 'approved' | 'completed'
   version: number
   createdAt: string
   shareToken: string

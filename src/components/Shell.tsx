@@ -8,11 +8,20 @@ type Props = {
   active: string
   theme: Theme
   clientMode?: boolean
+  trashCount?: number
   onNavigate: (path: string) => void
   onToggleTheme: () => void
 }
 
-export function Shell({ children, active, theme, clientMode = false, onNavigate, onToggleTheme }: Props) {
+function TrashIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="nav-icon">
+      <path d="M7 8v11h10V8M9 8V5h6v3M5 8h14M10 11v5M14 11v5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+export function Shell({ children, active, theme, clientMode = false, trashCount = 0, onNavigate, onToggleTheme }: Props) {
   const links = [
     ['/', 'Projects'],
     ['/new', 'Create project'],
@@ -40,6 +49,15 @@ export function Shell({ children, active, theme, clientMode = false, onNavigate,
                   {label}
                 </button>
               ))}
+              <button
+                className={active === '/trash' ? 'nav-link active nav-link-icon' : 'nav-link nav-link-icon'}
+                onClick={() => onNavigate('/trash')}
+                aria-label={`Trash${trashCount ? `, ${trashCount} ${trashCount === 1 ? 'project' : 'projects'}` : ''}`}
+                title="Trash"
+              >
+                <TrashIcon />
+                {trashCount > 0 && <span className="nav-count">{trashCount}</span>}
+              </button>
             </nav>
           )}
 
