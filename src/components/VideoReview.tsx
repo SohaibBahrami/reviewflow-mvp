@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import type { Project } from '../lib/types'
 import { formatTime, relativeDate } from '../lib/format'
+import { VideoPlayer, type VideoPlayerHandle } from './VideoPlayer'
 
 interface Props {
   project: Project
@@ -10,7 +11,7 @@ interface Props {
 }
 
 export function VideoReview({ project, onBack, onClientPreview, onUpdate }: Props) {
-  const videoRef = useRef<HTMLVideoElement | null>(null)
+  const videoRef = useRef<VideoPlayerHandle | null>(null)
   const [commentText, setCommentText] = useState('')
   const [currentTime, setCurrentTime] = useState(0)
   const [author, setAuthor] = useState('You')
@@ -51,7 +52,7 @@ export function VideoReview({ project, onBack, onClientPreview, onUpdate }: Prop
 
   async function copyClientLink() {
     const url = new URL(window.location.href)
-    url.hash = `/client/${project.id}`
+    url.hash = `/share/${project.shareToken}`
     if (!navigator.clipboard) return
     await navigator.clipboard.writeText(url.toString())
     setCopied(true)
@@ -59,9 +60,7 @@ export function VideoReview({ project, onBack, onClientPreview, onUpdate }: Prop
   }
 
   function seekTo(seconds: number) {
-    if (!videoRef.current) return
-    videoRef.current.currentTime = seconds
-    videoRef.current.play().catch(() => undefined)
+    videoRef.current?.seek(seconds)
   }
 
   return (
@@ -75,8 +74,8 @@ export function VideoReview({ project, onBack, onClientPreview, onUpdate }: Prop
         </div>
         <div className="review-actions">
           <button className="button button-secondary" onClick={onClientPreview}>Preview as client</button>
-          <button className="button button-secondary" onClick={copyClientLink} disabled={!navigator.clipboard}>
-            {copied ? 'Copied' : 'Copy preview URL'}
+          <button className="button button-primary" onClick={copyClientLink} disabled={!navigator.clipboard}>
+            {copied ? 'Review link copied' : 'Copy review link'}
           </button>
           <button className="button button-secondary" onClick={createVersion}>Start next version</button>
         </div>
@@ -85,7 +84,7 @@ export function VideoReview({ project, onBack, onClientPreview, onUpdate }: Prop
       <div className="review-guide" aria-label="Review workflow">
         <div><strong>1</strong><span>Review the video</span></div>
         <div><strong>2</strong><span>Resolve feedback</span></div>
-        <div><strong>3</strong><span>Send the client preview</span></div>
+        <div><strong>3</strong><span>Send the review link</span></div>
       </div>
 
       <div className="status-banner">
@@ -95,20 +94,14 @@ export function VideoReview({ project, onBack, onClientPreview, onUpdate }: Prop
         <span className="muted">
           {project.status === 'approved'
             ? 'This version is approved. Start a new version if you need more changes.'
-            : 'Use Preview as client to check exactly what your client will see. This prototype URL only works in this browser; public sharing comes later.'}
+            : 'Preview the client view, then copy the review link and send it to your client. This prototype link works only in this browser; cloud sharing comes next.'}
         </span>
       </div>
 
       <div className="review-layout">
         <div className="video-panel">
           {project.localVideoUrl ? (
-            <video
-              ref={videoRef}
-              className="video-player"
-              src={project.localVideoUrl}
-              controls
-              onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
-            />
+            <VideoPlayer ref={videoRef} src={project.localVideoUrl} onTimeChange={setCurrentTime} />
           ) : (
             <div className="video-empty">
               <div className="play-badge">▶</div>
@@ -116,7 +109,6 @@ export function VideoReview({ project, onBack, onClientPreview, onUpdate }: Prop
               <p>You can still test comments, timestamps, versioning, and the client preview without a video file.</p>
             </div>
           )}
-          <div className="time-chip">Feedback time: {formatTime(currentTime)}</div>
         </div>
 
         <aside className="comments-panel">
@@ -152,7 +144,7 @@ export function VideoReview({ project, onBack, onClientPreview, onUpdate }: Prop
             <input value={author} onChange={(e) => setAuthor(e.target.value)} placeholder="Your name" aria-label="Your name" />
             <textarea value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="What needs to change?" rows={3} />
             <div className="comment-form-footer">
-              <span className="muted">Pinned to {formatTime(currentTime)}</span>
+              <span className="feedback-time"><span>Feedback time</span>{formatTime(currentTime)}</span>
               <button className="button button-primary" type="submit">Add feedback</button>
             </div>
           </form>
