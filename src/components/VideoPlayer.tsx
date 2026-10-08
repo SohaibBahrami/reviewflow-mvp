@@ -134,8 +134,19 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, Props>(function VideoPl
           disabled={!duration}
         />
         <div className="video-volume-control">
-          <button type="button" className="video-volume-button" onClick={toggleMute}>
-            {volume === 0 ? 'Unmute' : 'Mute'}
+          <button
+            type="button"
+            className="video-volume-button"
+            onClick={toggleMute}
+            aria-label={volume === 0 ? 'Unmute video' : 'Mute video'}
+            title={volume === 0 ? 'Unmute' : 'Mute'}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 9v6h4l5 4V5L8 9H4Z" fill="currentColor" />
+              {volume > 0 && <path d="M16 8.5a5 5 0 0 1 0 7" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />}
+              {volume >= 0.5 && <path d="M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />}
+              {volume === 0 && <path d="m17 9 4 6m0-6-4 6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />}
+            </svg>
           </button>
           <input
             className="video-range video-volume-range"

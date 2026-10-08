@@ -168,3 +168,17 @@ The prototype exposed a local video directly to the browser. That is acceptable 
 For the production video path, the architecture now favors Cloudflare Stream over raw MP4 delivery from R2. Stream provides encoding, HLS/DASH playback, signed tokens, allowed origins, and optional watermarking. The application will use short-lived signed playback tokens for review links and will not grant download access by default.
 
 The product cannot guarantee that a viewer cannot screen-record a video once it is visible on their device. The practical protection strategy is to remove easy download paths, keep source URLs non-public, expire access, restrict the playback origin, and add client-specific visible watermarking so unauthorized recordings are attributable.
+
+
+## 2026-10-08 — Video protection architecture decision
+
+The product needs stronger protection than a browser-level “download disabled” control. Raw MP4 delivery means the authorized browser receives the actual media data, so UI restrictions cannot turn it into DRM.
+
+We will keep two viable options documented:
+
+- **Managed path:** Cloudflare Stream for encoding, HLS/DASH delivery, signed playback tokens, origin restrictions, and optional watermarking.
+- **DIY path:** private R2 originals + our own transcoding to HLS + an authenticated Worker that serves short-lived playlist/segment access.
+
+The DIY path gives us more control but also makes us responsible for transcoding jobs, retries, compatibility, cleanup, and scaling. The managed path is likely the better production choice unless the added control of the DIY stack becomes economically or technically worthwhile.
+
+In either design, the product claim is “prevent casual downloading and unauthorized sharing,” not “make screen recording impossible.”
