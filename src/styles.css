@@ -56,7 +56,6 @@ button { cursor: pointer; }
 .nav-link:hover, .nav-link.active { background: var(--surface-2); color: var(--text); }
 .topbar-actions { margin-left: auto; display: flex; align-items: center; gap: 10px; }
 .topbar-badge { color: var(--muted); background: var(--surface-2); border: 1px solid var(--border); padding: 8px 11px; border-radius: 999px; font-size: 12px; font-weight: 700; }
-.shared-review-note { margin: 12px 0 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
 .client-mode-label { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; font-weight: 700; }
 .client-mode-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); box-shadow: 0 0 0 4px color-mix(in srgb, var(--success) 12%, transparent); }
 .theme-toggle { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); padding: 9px 12px; border-radius: 12px; font-weight: 700; font-size: 12px; }

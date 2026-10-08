@@ -38,11 +38,6 @@ export default function App() {
     [projects, route.id],
   )
 
-  const sharedProject = useMemo(
-    () => projects.find((item) => item.shareToken === route.id),
-    [projects, route.id],
-  )
-
   function navigate(path: string) {
     window.location.hash = path
   }
@@ -62,10 +57,6 @@ export default function App() {
     page = <VideoReview project={project} onBack={() => navigate('/')} onClientPreview={() => navigate(`/client/${project.id}`)} onUpdate={updateProject} />
   } else if (route.path === '/client' && project) {
     page = <ClientReview project={project} onBack={() => navigate(`/review/${project.id}`)} onUpdate={updateProject} />
-  } else if (route.path === '/share' && sharedProject) {
-    page = <ClientReview project={sharedProject} standalone onUpdate={updateProject} />
-  } else if (route.path === '/share') {
-    page = <section className="narrow-page"><p className="eyebrow">Review link</p><h1>This review link is no longer available.</h1><p className="hero-copy">Ask the editor for a new link to the current video version.</p></section>
   } else if (route.path === '/new') {
     page = <NewProject onCreate={createProject} />
   } else if (route.path === '/') {
@@ -78,7 +69,7 @@ export default function App() {
     <Shell
       active={route.path}
       theme={theme}
-      clientMode={route.path === '/client' || route.path === '/share'}
+      clientMode={route.path === '/client'}
       onNavigate={navigate}
       onToggleTheme={() => setTheme((current) => toggleTheme(current))}
     >

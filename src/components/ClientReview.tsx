@@ -4,12 +4,11 @@ import { formatTime, relativeDate } from '../lib/format'
 
 interface Props {
   project: Project
-  onBack?: () => void
+  onBack: () => void
   onUpdate: (project: Project) => void
-  standalone?: boolean
 }
 
-export function ClientReview({ project, onBack, onUpdate, standalone = false }: Props) {
+export function ClientReview({ project, onBack, onUpdate }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const [commentText, setCommentText] = useState('')
   const [currentTime, setCurrentTime] = useState(0)
@@ -51,11 +50,10 @@ export function ClientReview({ project, onBack, onUpdate, standalone = false }: 
     <section className="client-review-page">
       <div className="review-header">
         <div>
-          {onBack && <button className="back-link" onClick={onBack}>← Exit client preview</button>}
+          <button className="back-link" onClick={onBack}>← Exit client preview</button>
           <p className="eyebrow">Client review</p>
           <h1>{project.title}</h1>
-          <p className="hero-copy">Version {project.version} · Leave feedback at a specific moment or approve the video when you're happy.</p>
-          {standalone && <p className="shared-review-note">You are reviewing a client link. No account is needed for this prototype.</p>}
+          <p className="hero-copy">Version {project.version} · Your feedback goes directly onto the video timeline.</p>
         </div>
         <div className="review-actions">
           <span className={project.status === 'approved' ? 'pill success' : 'pill'}>

@@ -51,7 +51,7 @@ export function VideoReview({ project, onBack, onClientPreview, onUpdate }: Prop
 
   async function copyClientLink() {
     const url = new URL(window.location.href)
-    url.hash = `/share/${project.shareToken}`
+    url.hash = `/client/${project.id}`
     if (!navigator.clipboard) return
     await navigator.clipboard.writeText(url.toString())
     setCopied(true)
@@ -75,8 +75,8 @@ export function VideoReview({ project, onBack, onClientPreview, onUpdate }: Prop
         </div>
         <div className="review-actions">
           <button className="button button-secondary" onClick={onClientPreview}>Preview as client</button>
-          <button className="button button-primary" onClick={copyClientLink} disabled={!navigator.clipboard}>
-            {copied ? 'Review link copied' : 'Copy review link'}
+          <button className="button button-secondary" onClick={copyClientLink} disabled={!navigator.clipboard}>
+            {copied ? 'Copied' : 'Copy preview URL'}
           </button>
           <button className="button button-secondary" onClick={createVersion}>Start next version</button>
         </div>
@@ -85,7 +85,7 @@ export function VideoReview({ project, onBack, onClientPreview, onUpdate }: Prop
       <div className="review-guide" aria-label="Review workflow">
         <div><strong>1</strong><span>Review the video</span></div>
         <div><strong>2</strong><span>Resolve feedback</span></div>
-        <div><strong>3</strong><span>Send the review link</span></div>
+        <div><strong>3</strong><span>Send the client preview</span></div>
       </div>
 
       <div className="status-banner">
@@ -95,7 +95,7 @@ export function VideoReview({ project, onBack, onClientPreview, onUpdate }: Prop
         <span className="muted">
           {project.status === 'approved'
             ? 'This version is approved. Start a new version if you need more changes.'
-            : 'Preview the client view, then copy the review link and send it to your client. This prototype link works only in this browser; cloud sharing comes next.'}
+            : 'Use Preview as client to check exactly what your client will see. This prototype URL only works in this browser; public sharing comes later.'}
         </span>
       </div>
 

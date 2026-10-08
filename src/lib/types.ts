@@ -16,7 +16,6 @@ export interface Project {
   status: 'in_review' | 'approved'
   version: number
   createdAt: string
-  shareToken: string
   localVideoUrl?: string
   comments: ReviewComment[]
 }

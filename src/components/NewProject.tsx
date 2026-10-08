@@ -17,7 +17,6 @@ export function NewProject({ onCreate }: { onCreate: (project: Project) => void 
       status: 'in_review',
       version: 1,
       createdAt: new Date().toISOString(),
-      shareToken: crypto.randomUUID(),
       localVideoUrl: file ? URL.createObjectURL(file) : undefined,
       comments: [],
     }
