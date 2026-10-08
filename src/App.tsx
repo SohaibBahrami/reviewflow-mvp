@@ -5,7 +5,7 @@ import { NewProject } from './components/NewProject'
 import { Shell } from './components/Shell'
 import { VideoReview } from './components/VideoReview'
 import { loadProjects, saveProjects } from './lib/storage'
-import { getLocalVideo } from './lib/videoStorage'
+import { deleteLocalVideo, getLocalVideo } from './lib/videoStorage'
 import { applyTheme, getTheme, toggleTheme, type Theme } from './lib/theme'
 import type { Project } from './lib/types'
 
@@ -20,6 +20,7 @@ export default function App() {
   const [route, setRoute] = useState(getRoute)
   const [projects, setProjects] = useState<Project[]>(loadProjects)
   const [theme, setTheme] = useState<Theme>(() => getTheme())
+  const [notice, setNotice] = useState<string | null>(null)
 
   useEffect(() => {
     applyTheme(theme)
@@ -32,7 +33,27 @@ export default function App() {
     return () => window.removeEventListener('hashchange', onHashChange)
   }, [])
 
-  useEffect(() => saveProjects(projects), [projects])
+  useEffect(() => {
+    const result = saveProjects(projects)
+    if (!result.ok) setNotice(result.message ?? 'Your changes could not be saved.')
+  }, [projects])
+
+  useEffect(() => {
+    const onError = (event: ErrorEvent) => {
+      console.error('ReviewFlow browser error', event.error ?? event.message)
+      setNotice('Something went wrong in the page. Your saved projects are kept locally; reload if the page becomes unresponsive.')
+    }
+    const onUnhandledRejection = (event: PromiseRejectionEvent) => {
+      console.error('ReviewFlow unhandled promise rejection', event.reason)
+      setNotice('Something went wrong while completing that action. Please try again.')
+    }
+    window.addEventListener('error', onError)
+    window.addEventListener('unhandledrejection', onUnhandledRejection)
+    return () => {
+      window.removeEventListener('error', onError)
+      window.removeEventListener('unhandledrejection', onUnhandledRejection)
+    }
+  }, [])
 
   const videoUrlsRef = useRef<Record<string, string>>({})
   const hydratedVideoIdsRef = useRef<Set<string>>(new Set())
@@ -77,7 +98,10 @@ export default function App() {
       try {
         const blob = await getLocalVideo(target.localVideoId!)
         if (cancelled) return
-        if (!blob) return
+        if (!blob) {
+          setNotice('A saved video could not be found. Try re-uploading the video in this project.')
+          return
+        }
 
         const url = URL.createObjectURL(blob)
         videoUrlsRef.current[target.id] = url
@@ -86,6 +110,7 @@ export default function App() {
         )))
       } catch (error) {
         console.error('ReviewFlow could not restore local video.', error)
+        if (!cancelled) setNotice('A saved video could not be loaded. Try re-uploading the video in this project.')
       }
     }
 
@@ -113,10 +138,42 @@ export default function App() {
     setProjects((current) => current.map((item) => (item.id === next.id ? next : item)))
   }
 
+  async function deleteProject(id: string) {
+    const target = projects.find((item) => item.id === id)
+    if (!target) return
+
+    if (!window.confirm(`Delete “${target.title}”? This cannot be undone.`)) return
+
+    if (videoUrlsRef.current[id]) {
+      URL.revokeObjectURL(videoUrlsRef.current[id])
+      delete videoUrlsRef.current[id]
+    }
+
+    if (target.localVideoId) {
+      try {
+        await deleteLocalVideo(target.localVideoId)
+      } catch (error) {
+        console.error('ReviewFlow could not delete the local video.', error)
+        setNotice('The project was deleted, but its local video could not be removed from browser storage.')
+      }
+    }
+
+    setProjects((current) => current.filter((item) => item.id !== id))
+    navigate('/')
+  }
+
+  function toggleProjectComplete(id: string) {
+    setProjects((current) => current.map((item) => {
+      if (item.id !== id) return item
+      if (item.status === 'completed') return { ...item, status: 'in_review', completedAt: undefined }
+      return { ...item, status: 'completed', completedAt: new Date().toISOString() }
+    }))
+  }
+
   let page: React.ReactNode
 
   if (route.path === '/review' && project) {
-    page = <VideoReview project={project} onBack={() => navigate('/')} onClientPreview={() => navigate(`/client/${project.id}`)} onUpdate={updateProject} />
+    page = <VideoReview project={project} onBack={() => navigate('/')} onClientPreview={() => navigate(`/client/${project.id}`)} onUpdate={updateProject} onDelete={() => void deleteProject(project.id)} onToggleComplete={() => toggleProjectComplete(project.id)} />
   } else if (route.path === '/client' && project) {
     page = <ClientReview project={project} onBack={() => navigate(`/review/${project.id}`)} onUpdate={updateProject} />
   } else if (route.path === '/share' && sharedProject) {
@@ -126,9 +183,9 @@ export default function App() {
   } else if (route.path === '/new') {
     page = <NewProject onCreate={createProject} />
   } else if (route.path === '/') {
-    page = <Dashboard projects={projects} onNew={() => navigate('/new')} onOpen={(id) => navigate(`/review/${id}`)} />
+    page = <Dashboard projects={projects} onNew={() => navigate('/new')} onOpen={(id) => navigate(`/review/${id}`)} onDelete={(id) => void deleteProject(id)} onToggleComplete={toggleProjectComplete} />
   } else {
-    page = <Dashboard projects={projects} onNew={() => navigate('/new')} onOpen={(id) => navigate(`/review/${id}`)} />
+    page = <Dashboard projects={projects} onNew={() => navigate('/new')} onOpen={(id) => navigate(`/review/${id}`)} onDelete={(id) => void deleteProject(id)} onToggleComplete={toggleProjectComplete} />
   }
 
   return (
@@ -139,6 +196,14 @@ export default function App() {
       onNavigate={navigate}
       onToggleTheme={() => setTheme((current) => toggleTheme(current))}
     >
+      {notice && (
+        <div className="app-notice" role="status">
+          <div className="app-notice-inner">
+            <span>{notice}</span>
+            <button type="button" onClick={() => setNotice(null)}>Dismiss</button>
+          </div>
+        </div>
+      )}
       {page}
     </Shell>
   )

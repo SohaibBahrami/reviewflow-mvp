@@ -9,6 +9,7 @@ const starterProject: Project = {
   status: 'in_review',
   version: 2,
   createdAt: new Date().toISOString(),
+  shareToken: crypto.randomUUID(),
   comments: [
     {
       id: 'comment-1',
@@ -29,6 +30,11 @@ const starterProject: Project = {
   ],
 }
 
+export type StorageResult = {
+  ok: boolean
+  message?: string
+}
+
 export function loadProjects(): Project[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
@@ -38,15 +44,36 @@ export function loadProjects(): Project[] {
     return parsed.map((project) => ({
       ...project,
       shareToken: project.shareToken || crypto.randomUUID(),
+      status: project.status || 'in_review',
     })) as Project[]
-  } catch {
+  } catch (error) {
+    console.error('ReviewFlow project storage could not be loaded.', error)
     return [starterProject]
   }
 }
 
-export function saveProjects(projects: Project[]) {
-  // Object URLs are temporary browser-session references and cannot survive a reload.
-  // Keep project metadata persistent without pretending the local video itself was saved.
-  const persistable = projects.map(({ localVideoUrl: _localVideoUrl, ...project }) => project)
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(persistable))
+export function saveProjects(projects: Project[]): StorageResult {
+  try {
+    // Object URLs are temporary browser-session references and cannot survive a reload.
+    // Keep project metadata persistent without pretending the local video itself was saved here.
+    const persistable = projects.map(({ localVideoUrl: _localVideoUrl, ...project }) => project)
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(persistable))
+    return { ok: true }
+  } catch (error) {
+    console.error('ReviewFlow project storage could not be saved.', error)
+    return {
+      ok: false,
+      message: 'Your project changes could not be saved in this browser. Check available storage and try again.',
+    }
+  }
+}
+
+export function resetProjects(): StorageResult {
+  try {
+    localStorage.removeItem(STORAGE_KEY)
+    return { ok: true }
+  } catch (error) {
+    console.error('ReviewFlow project storage could not be reset.', error)
+    return { ok: false, message: 'ReviewFlow could not reset local project data.' }
+  }
 }
