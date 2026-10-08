@@ -17,6 +17,7 @@ export interface Project {
   version: number
   createdAt: string
   shareToken: string
+  localVideoId?: string
   localVideoUrl?: string
   comments: ReviewComment[]
 }
