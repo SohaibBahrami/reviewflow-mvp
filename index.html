@@ -4,7 +4,22 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0f1115" />
-    <style>html, body { margin: 0; background: #0f1115; color: #eef0f4; }</style>
+    <link rel="icon" type="image/svg+xml" href="/reviewflow-mark.svg" />
+    <script>
+      (() => {
+        const saved = localStorage.getItem('reviewflow-theme')
+        const theme = saved === 'light' || saved === 'dark'
+          ? saved
+          : (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+        document.documentElement.dataset.theme = theme
+        document.documentElement.style.colorScheme = theme
+        document.querySelector('meta[name="theme-color"]').setAttribute('content', theme === 'light' ? '#f5f6fa' : '#0f1115')
+      })()
+    </script>
+    <style>
+      html, body { margin: 0; background: #0f1115; color: #eef0f4; }
+      html[data-theme='light'], html[data-theme='light'] body { background: #f5f6fa; color: #171922; }
+    </style>
     <meta name="description" content="A calmer way for freelance video editors to collect client feedback and approvals." />
     <title>ReviewFlow — Client approvals without the mess</title>
   </head>

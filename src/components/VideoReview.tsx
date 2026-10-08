@@ -144,7 +144,7 @@ export function VideoReview({ project, onBack, onClientPreview, onUpdate }: Prop
             <input value={author} onChange={(e) => setAuthor(e.target.value)} placeholder="Your name" aria-label="Your name" />
             <textarea value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="What needs to change?" rows={3} />
             <div className="comment-form-footer">
-              <span className="feedback-time"><span>Feedback time</span>{formatTime(currentTime)}</span>
+              <span className="feedback-time" aria-live="polite"><span className="feedback-time-status" aria-hidden="true"></span><span>Will submit at</span><strong>{formatTime(currentTime)}</strong></span>
               <button className="button button-primary" type="submit">Add feedback</button>
             </div>
           </form>
