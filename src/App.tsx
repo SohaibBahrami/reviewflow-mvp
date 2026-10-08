@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { ClientReview } from './components/ClientReview'
 import { AuthView } from './components/AuthView'
 import { ConfirmDialog } from './components/ConfirmDialog'
@@ -289,7 +289,7 @@ export default function App() {
     }))
   }
 
-  let page: React.ReactNode
+  let page: ReactNode
 
   if (route.path === '/review' && project && project.status !== 'trashed') {
     page = <VideoReview project={project} onBack={() => navigate('/')} onClientPreview={() => navigate(`/client/${project.id}`)} onUpdate={updateProject} onDelete={() => requestDeleteProject(project.id)} onToggleComplete={() => toggleProjectComplete(project.id)} />

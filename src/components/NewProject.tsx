@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
 import type { Project } from '../lib/types'
 import { saveLocalVideo } from '../lib/videoStorage'
 
@@ -9,7 +9,7 @@ export function NewProject({ onCreate }: { onCreate: (project: Project) => void 
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
-  async function submit(event: React.FormEvent) {
+  async function submit(event: FormEvent) {
     event.preventDefault()
     setError('')
     setSaving(true)

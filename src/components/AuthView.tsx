@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import type { Session, SupabaseClient } from '@supabase/supabase-js'
 import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabase'
 
@@ -53,7 +53,7 @@ export function AuthView({ onDone }: { onDone: () => void }) {
     }
   }, [])
 
-  async function submit(event: React.FormEvent) {
+  async function submit(event: FormEvent) {
     event.preventDefault()
     if (!client) return
 
@@ -61,22 +61,21 @@ export function AuthView({ onDone }: { onDone: () => void }) {
     setMessage('')
     setLoading(true)
 
-    const result = mode === 'sign-in'
-      ? await client.auth.signInWithPassword({ email: email.trim(), password })
-      : await client.auth.signUp({ email: email.trim(), password })
+    try {
+      const result = mode === 'sign-in'
+        ? await client.auth.signInWithPassword({ email: email.trim(), password })
+        : await client.auth.signUp({ email: email.trim(), password })
 
-    setLoading(false)
+      if (result.error) {
+        setError(result.error.message)
+        return
+      }
 
-    if (result.error) {
-      setError(result.error.message)
-      return
-    }
-
-    if (mode === 'sign-up' && !result.data.session) {
-      setMessage('Check your email to confirm your account, then sign in.')
-      setMode('sign-in')
-      return
-    }
+      if (mode === 'sign-up' && !result.data.session) {
+        setMessage('Check your email to confirm your account, then sign in.')
+        setMode('sign-in')
+        return
+      }
 
       setPassword('')
     } catch (reason) {
