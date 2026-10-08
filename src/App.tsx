@@ -35,46 +35,7 @@ export default function App() {
   useEffect(() => saveProjects(projects), [projects])
 
   const videoUrlsRef = useRef<Record<string, string>>({})
-
-  useEffect(() => {
-    let cancelled = false
-    const hydrateVideos = async () => {
-      const updates = await Promise.all(
-        projects.map(async (project) => {
-          if (!project.localVideoId || videoUrlsRef.current[project.id]) {
-            return { id: project.id, url: videoUrlsRef.current[project.id] }
-          }
-
-          try {
-            const blob = await getLocalVideo(project.localVideoId)
-            const url = blob ? URL.createObjectURL(blob) : undefined
-            if (url) videoUrlsRef.current[project.id] = url
-            return { id: project.id, url }
-          } catch {
-            return { id: project.id, url: undefined as string | undefined }
-          }
-        }),
-      )
-
-      if (cancelled) return
-
-      setProjects((current) => current.map((project) => {
-        const update = updates.find((item) => item.id === project.id)
-        if (!update?.url || project.localVideoUrl === update.url) return project
-        return { ...project, localVideoUrl: update.url }
-      }))
-    }
-
-    void hydrateVideos()
-
-    return () => {
-      cancelled = true
-    }
-  }, [projects])
-
-  useEffect(() => () => {
-    Object.values(videoUrlsRef.current).forEach((url) => URL.revokeObjectURL(url))
-  }, [])
+  const hydratedVideoIdsRef = useRef<Set<string>>(new Set())
 
   const project = useMemo(
     () => projects.find((item) => item.id === route.id),
@@ -85,6 +46,59 @@ export default function App() {
     () => projects.find((item) => item.shareToken === route.id),
     [projects, route.id],
   )
+
+  const activeVideoProject =
+    route.path === '/review' || route.path === '/client'
+      ? project
+      : route.path === '/share'
+        ? sharedProject
+        : undefined
+
+  useEffect(() => {
+    let cancelled = false
+    const target = activeVideoProject
+
+    if (!target?.localVideoId) return
+
+    const cachedUrl = videoUrlsRef.current[target.id]
+    if (cachedUrl) {
+      if (target.localVideoUrl !== cachedUrl) {
+        setProjects((current) => current.map((item) => (
+          item.id === target.id ? { ...item, localVideoUrl: cachedUrl } : item
+        )))
+      }
+      return
+    }
+
+    if (hydratedVideoIdsRef.current.has(target.localVideoId)) return
+    hydratedVideoIdsRef.current.add(target.localVideoId)
+
+    const hydrateActiveVideo = async () => {
+      try {
+        const blob = await getLocalVideo(target.localVideoId!)
+        if (cancelled) return
+        if (!blob) return
+
+        const url = URL.createObjectURL(blob)
+        videoUrlsRef.current[target.id] = url
+        setProjects((current) => current.map((item) => (
+          item.id === target.id ? { ...item, localVideoUrl: url } : item
+        )))
+      } catch (error) {
+        console.error('ReviewFlow could not restore local video.', error)
+      }
+    }
+
+    void hydrateActiveVideo()
+
+    return () => {
+      cancelled = true
+    }
+  }, [activeVideoProject?.id, activeVideoProject?.localVideoId, activeVideoProject?.localVideoUrl])
+
+  useEffect(() => () => {
+    Object.values(videoUrlsRef.current).forEach((url) => URL.revokeObjectURL(url))
+  }, [])
 
   function navigate(path: string) {
     window.location.hash = path
