@@ -9,6 +9,11 @@
 - [x] resolve/reopen
 - [x] approve version
 - [x] local persistence
+- [x] persistent light/dark theme
+- [x] client review preview
+- [x] client timestamped feedback
+- [x] client approval flow
+- [x] next-version workflow
 
 ## v0.2 — real product foundation
 
@@ -17,9 +22,13 @@
 - [ ] projects table + RLS
 - [ ] versions table
 - [ ] comments table
-- [ ] public review link
-- [ ] R2 bucket + signed upload endpoint
+- [ ] real review link
+- [ ] Cloudflare Stream video upload + processing
+- [ ] signed playback tokens with short expiry
+- [ ] allowed-origin playback restriction
 - [ ] client review mode without account
+- [ ] review-only player with downloads disabled
+- [ ] client-specific watermark / share identity
 
 ## v0.3 — make it worth paying for
 

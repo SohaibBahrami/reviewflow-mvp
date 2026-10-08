@@ -24,14 +24,27 @@ Browser
   |      +-- Postgres (projects, comments, versions, memberships)
   |      +-- Realtime (new comments / status changes)
   |
-  +-- app API / worker
+  +-- Cloudflare Worker / app API
          |
-         +-- signed R2 upload URL
-                    |
-                    +-- Cloudflare R2 (video objects)
+         +-- one-time / short-lived upload authorization
+         |          |
+         |          +-- Cloudflare Stream
+         |                 +-- encoding
+         |                 +-- HLS / DASH delivery
+         |                 +-- signed playback tokens
+         |                 +-- origin restrictions
+         |                 +-- optional watermarks
+         |
+         +-- signed playback token for client review
 ```
 
-Browser clients should upload directly to R2 through a short-lived presigned URL so the application server does not become a video proxy. Cloudflare's current R2 documentation recommends this pattern for client-side uploads.
+### Why Stream instead of raw R2 for video
+
+R2 remains useful for ordinary file storage, but raw MP4 delivery is the wrong foundation for a review product where the video is valuable intellectual property. Cloudflare Stream handles video encoding and adaptive playback and supports HLS/DASH, while signed tokens can require authorization for playback. This lets the app avoid exposing a permanent public MP4 URL.
+
+Cloudflare's current Stream documentation also supports origin restrictions and watermarking. The default short-lived token does not enable download access; explicit `downloadable` access is an opt-in token restriction.
+
+A browser can never make watched pixels impossible to record. Our goal is therefore to prevent casual downloading, avoid public source URLs, limit access duration, tie access to the intended review link/session, and add a visible client-specific watermark as a deterrent. Strong DRM can remain a later enterprise-level option if customers actually require it.
 
 ## Database shape for phase 2
 
@@ -75,5 +88,8 @@ Browser clients should upload directly to R2 through a short-lived presigned URL
 - never expose R2 access keys to browser clients
 - review links should use unguessable tokens
 - use Supabase Row Level Security for authenticated application data
-- keep client uploads isolated by project/version object keys
-- validate upload type and size before issuing signed URLs
+- keep client uploads isolated by project/version identifiers
+- validate upload type and size before issuing upload authorization
+- never expose Cloudflare API credentials to the browser
+- issue short-lived playback tokens and keep video identifiers out of public URLs where possible
+- do not grant `downloadable` playback access for review links
