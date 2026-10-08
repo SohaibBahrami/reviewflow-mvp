@@ -4,11 +4,12 @@ import { formatTime, relativeDate } from '../lib/format'
 
 interface Props {
   project: Project
-  onBack: () => void
+  onBack?: () => void
   onUpdate: (project: Project) => void
+  standalone?: boolean
 }
 
-export function ClientReview({ project, onBack, onUpdate }: Props) {
+export function ClientReview({ project, onBack, onUpdate, standalone = false }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const [commentText, setCommentText] = useState('')
   const [currentTime, setCurrentTime] = useState(0)
@@ -50,19 +51,26 @@ export function ClientReview({ project, onBack, onUpdate }: Props) {
     <section className="client-review-page">
       <div className="review-header">
         <div>
-          <button className="back-link" onClick={onBack}>← Back to editor</button>
+          {onBack && <button className="back-link" onClick={onBack}>← Exit client preview</button>}
           <p className="eyebrow">Client review</p>
           <h1>{project.title}</h1>
-          <p className="hero-copy">Version {project.version} · Leave timestamped feedback or approve the cut.</p>
+          <p className="hero-copy">Version {project.version} · Leave feedback at a specific moment or approve the video when you're happy.</p>
+          {standalone && <p className="shared-review-note">You are reviewing a client link. No account is needed for this prototype.</p>}
         </div>
         <div className="review-actions">
           <span className={project.status === 'approved' ? 'pill success' : 'pill'}>
-            {project.status === 'approved' ? 'Approved' : 'Awaiting approval'}
+            {project.status === 'approved' ? 'Approved' : 'Needs your review'}
           </span>
           <button className="button button-primary" onClick={approve} disabled={project.status === 'approved'}>
-            {project.status === 'approved' ? '✓ Approved' : '✓ Approve version'}
+            {project.status === 'approved' ? '✓ Version approved' : 'Approve this version'}
           </button>
         </div>
+      </div>
+
+      <div className="review-guide client-guide" aria-label="How to review">
+        <div><strong>1</strong><span>Play the video</span></div>
+        <div><strong>2</strong><span>Pause where you want a change</span></div>
+        <div><strong>3</strong><span>Send feedback or approve</span></div>
       </div>
 
       <div className="review-layout">
@@ -79,22 +87,22 @@ export function ClientReview({ project, onBack, onUpdate }: Props) {
             <div className="video-empty">
               <div className="play-badge">▶</div>
               <h3>No video uploaded</h3>
-              <p>Upload a video from the editor view to test playback and timestamped feedback.</p>
+              <p>The editor has not added a video file yet. You can still test the feedback and approval flow here.</p>
             </div>
           )}
-          <div className="time-chip">Current time: {formatTime(currentTime)}</div>
+          <div className="time-chip">Feedback time: {formatTime(currentTime)}</div>
         </div>
 
         <aside className="comments-panel">
           <div className="panel-heading">
             <div>
-              <p className="eyebrow">Feedback</p>
+              <p className="eyebrow">Your feedback</p>
               <h2>{project.comments.length} comments</h2>
             </div>
           </div>
 
           <div className="comment-list">
-            {comments.length === 0 && <p className="muted">No feedback yet. Add a note while you review the video.</p>}
+            {comments.length === 0 && <p className="muted">There is no feedback yet. Start by pausing the video where you want a change.</p>}
             {comments.map((comment) => (
               <article key={comment.id} className={comment.status === 'resolved' ? 'comment resolved' : 'comment'}>
                 <button className="timestamp" onClick={() => seekTo(comment.timestamp)}>
@@ -112,10 +120,16 @@ export function ClientReview({ project, onBack, onUpdate }: Props) {
           </div>
 
           <form className="comment-form" onSubmit={addComment}>
-            <input value={author} onChange={(e) => setAuthor(e.target.value)} placeholder="Your name" aria-label="Your name" />
-            <textarea value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="What should change here?" rows={3} />
+            <label className="comment-name-field">
+              <span>Your name</span>
+              <input value={author} onChange={(e) => setAuthor(e.target.value)} placeholder={project.client} />
+            </label>
+            <label className="comment-message-field">
+              <span>What should change?</span>
+              <textarea value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="e.g. Make this shot a little shorter" rows={3} />
+            </label>
             <div className="comment-form-footer">
-              <span className="muted">Timestamped at {formatTime(currentTime)}</span>
+              <span className="muted">Pinned to {formatTime(currentTime)}</span>
               <button className="button button-primary" type="submit">Send feedback</button>
             </div>
           </form>

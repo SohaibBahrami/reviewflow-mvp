@@ -33,13 +33,20 @@ export function loadProjects(): Project[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return [starterProject]
-    const parsed = JSON.parse(raw) as Project[]
-    return Array.isArray(parsed) ? parsed : [starterProject]
+    const parsed = JSON.parse(raw) as Partial<Project>[]
+    if (!Array.isArray(parsed)) return [starterProject]
+    return parsed.map((project) => ({
+      ...project,
+      shareToken: project.shareToken || crypto.randomUUID(),
+    })) as Project[]
   } catch {
     return [starterProject]
   }
 }
 
 export function saveProjects(projects: Project[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(projects))
+  // Object URLs are temporary browser-session references and cannot survive a reload.
+  // Keep project metadata persistent without pretending the local video itself was saved.
+  const persistable = projects.map(({ localVideoUrl: _localVideoUrl, ...project }) => project)
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(persistable))
 }
