@@ -188,3 +188,11 @@ In either design, the product claim is “prevent casual downloading and unautho
 The project archives previously included Git refs without the corresponding Git object database, which made the local repository appear to have branches pointing at missing commits. The project was rebuilt into a valid Git repository with the current application snapshot and a structured commit history preserved as real Git objects.
 
 Future project archives will be validated with `git fsck --full` before delivery.
+### 2026-10-08 — Browser-local video persistence
+- Found that project metadata survived refresh while uploaded videos did not.
+- Root cause: the MVP stored temporary `blob:` URLs only in memory and explicitly removed them before writing project metadata to `localStorage`.
+- Replaced that approach with native IndexedDB for browser-local video blobs.
+- Project metadata now stores a stable local video ID, while the app recreates a fresh object URL on load.
+- No dependency added; this uses browser storage APIs directly.
+- Existing videos created before this change cannot be recovered after a refresh because their temporary URLs were never persisted.
+
