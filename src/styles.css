@@ -116,3 +116,6 @@ input:focus, textarea:focus { border-color: #aaaef1; box-shadow: 0 0 0 4px rgba(
   h1 { font-size: 40px; }
   .review-actions { justify-content: flex-start; }
 }
+
+button, input, textarea, select { font: inherit; }
+button { cursor: pointer; }
