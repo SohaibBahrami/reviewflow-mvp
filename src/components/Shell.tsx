@@ -50,6 +50,12 @@ export function Shell({ children, active, theme, clientMode = false, trashCount 
                 </button>
               ))}
               <button
+                className={active === '/account' ? 'nav-link active' : 'nav-link'}
+                onClick={() => onNavigate('/account')}
+              >
+                Account
+              </button>
+              <button
                 className={active === '/trash' ? 'nav-link active nav-link-icon' : 'nav-link nav-link-icon'}
                 onClick={() => onNavigate('/trash')}
                 aria-label={`Trash${trashCount ? `, ${trashCount} ${trashCount === 1 ? 'project' : 'projects'}` : ''}`}

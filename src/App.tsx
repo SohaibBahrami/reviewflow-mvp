@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ClientReview } from './components/ClientReview'
+import { AuthView } from './components/AuthView'
 import { ConfirmDialog } from './components/ConfirmDialog'
 import { Dashboard } from './components/Dashboard'
 import { NewProject } from './components/NewProject'
@@ -296,6 +297,8 @@ export default function App() {
     page = <ClientReview project={project} onBack={() => navigate(`/review/${project.id}`)} onUpdate={updateProject} />
   } else if (route.path === '/share' && sharedProject) {
     page = <ClientReview project={sharedProject} standalone onUpdate={updateProject} />
+  } else if (route.path === '/account') {
+    page = <AuthView onDone={() => navigate('/')} />
   } else if (route.path === '/trash') {
     page = <Trash projects={projects} onBack={() => navigate('/')} onRestore={restoreProject} onDeletePermanently={requestPermanentDelete} />
   } else if (route.path === '/share') {
