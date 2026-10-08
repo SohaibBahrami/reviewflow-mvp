@@ -1,15 +1,32 @@
 import { useState } from 'react'
 import type { Project } from '../lib/types'
+import { saveLocalVideo } from '../lib/videoStorage'
 
 export function NewProject({ onCreate }: { onCreate: (project: Project) => void }) {
   const [title, setTitle] = useState('')
   const [client, setClient] = useState('')
   const [file, setFile] = useState<File | null>(null)
+  const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
 
-  function submit(event: React.FormEvent) {
+  async function submit(event: React.FormEvent) {
     event.preventDefault()
+    setError('')
+    setSaving(true)
     const cleanTitle = title.trim() || 'Untitled project'
     const cleanClient = client.trim() || 'New client'
+    const videoId = file ? crypto.randomUUID() : undefined
+
+    try {
+      if (file && videoId) {
+        await saveLocalVideo(videoId, file)
+      }
+    } catch {
+      setError('The video could not be saved in this browser. Try a smaller file or check available storage.')
+      setSaving(false)
+      return
+    }
+
     const project: Project = {
       id: crypto.randomUUID(),
       title: cleanTitle,
@@ -18,10 +35,11 @@ export function NewProject({ onCreate }: { onCreate: (project: Project) => void 
       version: 1,
       createdAt: new Date().toISOString(),
       shareToken: crypto.randomUUID(),
-      localVideoUrl: file ? URL.createObjectURL(file) : undefined,
+      localVideoId: videoId,
       comments: [],
     }
     onCreate(project)
+    setSaving(false)
   }
 
   return (
@@ -55,8 +73,9 @@ export function NewProject({ onCreate }: { onCreate: (project: Project) => void 
           </label>
           {file && <div className="selected-file">Selected video <strong>{file.name}</strong></div>}
         </div>
+        {error && <p className="form-error" role="alert">{error}</p>}
         <div className="form-actions">
-          <button className="button button-primary" type="submit">Create project</button>
+          <button className="button button-primary" type="submit" disabled={saving}>{saving ? 'Saving video…' : 'Create project'}</button>
         </div>
       </form>
     </section>

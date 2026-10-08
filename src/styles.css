@@ -105,6 +105,12 @@ label { display: grid; gap: 8px; font-weight: 700; font-size: 14px; }
 .field-help { color: var(--muted); font-weight: 500; font-size: 12px; line-height: 1.5; }
 input, textarea { width: 100%; border: 1px solid var(--border); background: var(--surface-2); border-radius: 14px; padding: 13px 14px; outline: none; color: var(--text); }
 input:focus, textarea:focus { border-color: #aaaef1; box-shadow: 0 0 0 4px rgba(91, 99, 215, .08); }
+.form-error {
+  color: var(--danger);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
 .form-actions { justify-content: flex-start; }
 
 .back-link { border: 0; background: transparent; color: var(--muted); padding: 0; margin-bottom: 18px; }

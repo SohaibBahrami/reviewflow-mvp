@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ClientReview } from './components/ClientReview'
 import { Dashboard } from './components/Dashboard'
 import { NewProject } from './components/NewProject'
 import { Shell } from './components/Shell'
 import { VideoReview } from './components/VideoReview'
 import { loadProjects, saveProjects } from './lib/storage'
+import { getLocalVideo } from './lib/videoStorage'
 import { applyTheme, getTheme, toggleTheme, type Theme } from './lib/theme'
 import type { Project } from './lib/types'
 
@@ -32,6 +33,48 @@ export default function App() {
   }, [])
 
   useEffect(() => saveProjects(projects), [projects])
+
+  const videoUrlsRef = useRef<Record<string, string>>({})
+
+  useEffect(() => {
+    let cancelled = false
+    const hydrateVideos = async () => {
+      const updates = await Promise.all(
+        projects.map(async (project) => {
+          if (!project.localVideoId || videoUrlsRef.current[project.id]) {
+            return { id: project.id, url: videoUrlsRef.current[project.id] }
+          }
+
+          try {
+            const blob = await getLocalVideo(project.localVideoId)
+            const url = blob ? URL.createObjectURL(blob) : undefined
+            if (url) videoUrlsRef.current[project.id] = url
+            return { id: project.id, url }
+          } catch {
+            return { id: project.id, url: undefined as string | undefined }
+          }
+        }),
+      )
+
+      if (cancelled) return
+
+      setProjects((current) => current.map((project) => {
+        const update = updates.find((item) => item.id === project.id)
+        if (!update?.url || project.localVideoUrl === update.url) return project
+        return { ...project, localVideoUrl: update.url }
+      }))
+    }
+
+    void hydrateVideos()
+
+    return () => {
+      cancelled = true
+    }
+  }, [projects])
+
+  useEffect(() => () => {
+    Object.values(videoUrlsRef.current).forEach((url) => URL.revokeObjectURL(url))
+  }, [])
 
   const project = useMemo(
     () => projects.find((item) => item.id === route.id),
