@@ -251,3 +251,23 @@ Deletion is now reversible by default. The editor moves projects to Trash instea
 ### Dependency choice
 
 No runtime dependency was added. Confirmation, toast, timers, and the Trash view are implemented with React and browser APIs already in the project.
+
+## 2026-10-08 — Supabase cloud foundation
+
+### Decision
+
+Start the cloud migration with identity and database authorization, while leaving browser-local project/video storage as the fallback until the cloud path is configured and tested.
+
+### Changes
+
+- Added the official `@supabase/supabase-js` client library as the only new runtime dependency in this milestone.
+- Load the Supabase client lazily so local mode does not eagerly load the cloud SDK.
+- Added an Account screen with email/password sign-up, sign-in, persistent sessions, and sign-out.
+- Added a Supabase SQL schema for projects, project versions, and review comments.
+- Enabled Row Level Security and owner-only editor policies in the schema.
+- Intentionally did not grant anonymous access to the projects table; public client reviews will use a narrower server-side/share-link path later.
+- Kept local storage active so the app remains usable before a Supabase project is configured.
+
+### Next migration step
+
+After the account foundation is configured and tested, migrate editor project metadata and review comments to Supabase while keeping video objects out of Postgres.

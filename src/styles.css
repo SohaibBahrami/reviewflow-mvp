@@ -271,3 +271,17 @@ input:focus, textarea:focus { border-color: #aaaef1; box-shadow: 0 0 0 4px rgba(
   .confirm-dialog-actions { flex-direction: column-reverse; }
   .confirm-dialog-actions .button { width: 100%; }
 }
+
+/* Account and cloud foundation */
+.auth-page { min-height: calc(100vh - 140px); display: grid; place-items: center; padding: 30px 0; }
+.auth-card { width: min(100%, 600px); background: var(--surface); border: 1px solid var(--border); border-radius: 26px; padding: 32px; box-shadow: var(--shadow); }
+.auth-card code { padding: 2px 5px; border-radius: 6px; background: var(--surface-2); color: var(--text); }
+.auth-setup-note { display: grid; gap: 4px; margin: 24px 0; padding: 15px 16px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface-2); }
+.auth-setup-note strong { font-size: 13px; }
+.auth-setup-note span { color: var(--muted); font-size: 12px; line-height: 1.5; }
+.auth-form { margin-top: 26px; box-shadow: none; }
+.auth-switch { display: block; margin: 16px auto 0; border: 0; background: transparent; color: var(--accent-strong); font-size: 13px; font-weight: 800; }
+.auth-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.form-success { color: var(--success); font-size: .9rem; margin: 0; }
+.auth-loading { display: flex; align-items: center; gap: 10px; color: var(--muted); font-weight: 700; }
+.loading-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 5px var(--accent-soft); }
