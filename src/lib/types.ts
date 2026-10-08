@@ -13,7 +13,8 @@ export interface Project {
   id: string
   title: string
   client: string
-  status: 'in_review' | 'approved'
+  status: 'in_review' | 'approved' | 'completed'
+  completedAt?: string
   version: number
   createdAt: string
   shareToken: string
