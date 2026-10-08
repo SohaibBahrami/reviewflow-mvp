@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState, type FormEvent } from 'react'
 import type { Project } from '../lib/types'
 import { formatTime, relativeDate } from '../lib/format'
 import { VideoPlayer, type VideoPlayerHandle } from './VideoPlayer'
@@ -21,7 +21,7 @@ export function ClientReview({ project, onBack, onUpdate, standalone = false }: 
     [project.comments],
   )
 
-  function addComment(event: React.FormEvent) {
+  function addComment(event: FormEvent) {
     event.preventDefault()
     if (!commentText.trim()) return
 
