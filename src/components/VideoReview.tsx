@@ -8,9 +8,11 @@ interface Props {
   onBack: () => void
   onClientPreview: () => void
   onUpdate: (project: Project) => void
+  onDelete: () => void
+  onToggleComplete: () => void
 }
 
-export function VideoReview({ project, onBack, onClientPreview, onUpdate }: Props) {
+export function VideoReview({ project, onBack, onClientPreview, onUpdate, onDelete, onToggleComplete }: Props) {
   const videoRef = useRef<VideoPlayerHandle | null>(null)
   const [commentText, setCommentText] = useState('')
   const [currentTime, setCurrentTime] = useState(0)
@@ -47,7 +49,7 @@ export function VideoReview({ project, onBack, onClientPreview, onUpdate }: Prop
   }
 
   function createVersion() {
-    onUpdate({ ...project, version: project.version + 1, status: 'in_review', comments: [] })
+    onUpdate({ ...project, version: project.version + 1, status: 'in_review', completedAt: undefined, comments: [] })
   }
 
   async function copyClientLink() {
@@ -78,6 +80,10 @@ export function VideoReview({ project, onBack, onClientPreview, onUpdate }: Prop
             {copied ? 'Review link copied' : 'Copy review link'}
           </button>
           <button className="button button-secondary" onClick={createVersion}>Start next version</button>
+          <button className={project.status === 'completed' ? 'button button-secondary' : 'button button-secondary'} onClick={onToggleComplete}>
+            {project.status === 'completed' ? 'Reopen project' : 'Mark project complete'}
+          </button>
+          <button className="button button-danger" onClick={onDelete}>Delete project</button>
         </div>
       </div>
 
@@ -88,13 +94,15 @@ export function VideoReview({ project, onBack, onClientPreview, onUpdate }: Prop
       </div>
 
       <div className="status-banner">
-        <span className={project.status === 'approved' ? 'pill success' : 'pill'}>
-          {project.status === 'approved' ? 'Approved by client' : 'Waiting for client'}
+        <span className={project.status === 'approved' ? 'pill success' : project.status === 'completed' ? 'pill completed' : 'pill'}>
+          {project.status === 'approved' ? 'Approved by client' : project.status === 'completed' ? 'Project completed' : 'Waiting for client'}
         </span>
         <span className="muted">
-          {project.status === 'approved'
-            ? 'This version is approved. Start a new version if you need more changes.'
-            : 'Preview the client view, then copy the review link and send it to your client. This prototype link works only in this browser; cloud sharing comes next.'}
+          {project.status === 'completed'
+            ? 'This project is finished and stored in your completed projects. Reopen it when you need to make more changes.'
+            : project.status === 'approved'
+              ? 'This version is approved. Mark the project complete when the work is finished.'
+              : 'Preview the client view, then copy the review link and send it to your client. This prototype link works only in this browser; cloud sharing comes next.'}
         </span>
       </div>
 

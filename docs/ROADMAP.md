@@ -14,6 +14,10 @@
 - [x] client timestamped feedback
 - [x] client approval flow
 - [x] next-version workflow
+- [x] completed-project archive
+- [x] delete projects
+- [x] runtime error recovery
+- [x] lazy local-video hydration
 
 ## v0.2 — real product foundation
 

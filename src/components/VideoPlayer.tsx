@@ -3,6 +3,7 @@ import { formatTime } from '../lib/format'
 
 export interface VideoPlayerHandle {
   seek: (seconds: number) => void
+  reload: () => void
 }
 
 interface Props {
@@ -18,6 +19,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, Props>(function VideoPl
   const [duration, setDuration] = useState(0)
   const [volume, setVolume] = useState(1)
   const [lastAudibleVolume, setLastAudibleVolume] = useState(1)
+  const [videoError, setVideoError] = useState(false)
 
   useImperativeHandle(ref, () => ({
     seek(seconds: number) {
@@ -26,15 +28,27 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, Props>(function VideoPl
       setCurrentTime(seconds)
       onTimeChange?.(seconds)
     },
+    reload() {
+      videoRef.current?.load()
+    },
   }), [onTimeChange])
 
   async function togglePlayback() {
-    if (!videoRef.current) return
+    if (!videoRef.current || videoError) return
     if (videoRef.current.paused) {
-      await videoRef.current.play().catch(() => undefined)
+      await videoRef.current.play().catch((error) => {
+        console.error('ReviewFlow could not start video playback.', error)
+        setVideoError(true)
+      })
     } else {
       videoRef.current.pause()
     }
+  }
+
+  function retryVideo() {
+    if (!videoRef.current) return
+    setVideoError(false)
+    videoRef.current?.load()
   }
 
   function seekBy(delta: number) {
@@ -97,7 +111,14 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, Props>(function VideoPl
         controlsList="nodownload noremoteplayback"
         disablePictureInPicture
         onContextMenu={(event) => event.preventDefault()}
-        onLoadedMetadata={(event) => setDuration(event.currentTarget.duration || 0)}
+        onLoadedMetadata={(event) => {
+          setVideoError(false)
+          setDuration(event.currentTarget.duration || 0)
+        }}
+        onError={(event) => {
+          console.error('ReviewFlow video playback error', event.currentTarget.error)
+          setVideoError(true)
+        }}
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
         onEnded={() => setPlaying(false)}
@@ -108,6 +129,14 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, Props>(function VideoPl
         }}
         onClick={togglePlayback}
       />
+
+      {videoError && (
+        <div className="video-load-error" role="alert">
+          <h3>We couldn't play this video.</h3>
+          <p>The video may be unavailable or the browser may have trouble decoding it. Try loading it again.</p>
+          <button type="button" className="button button-secondary" onClick={retryVideo}>Try again</button>
+        </div>
+      )}
 
       <div className="video-controls" aria-label="Video controls">
         <button type="button" className="video-control-button primary" onClick={togglePlayback} aria-label={playing ? 'Pause video' : 'Play video'}>

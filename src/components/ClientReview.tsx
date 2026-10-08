@@ -34,6 +34,7 @@ export function ClientReview({ project, onBack, onUpdate, standalone = false }: 
       status: 'open' as const,
     }
 
+    if (project.status === 'completed') return
     onUpdate({ ...project, status: 'in_review', comments: [...project.comments, next] })
     setCommentText('')
   }
@@ -57,11 +58,11 @@ export function ClientReview({ project, onBack, onUpdate, standalone = false }: 
           {standalone && <p className="shared-review-note">You are reviewing a client link. No account is needed for this prototype.</p>}
         </div>
         <div className="review-actions">
-          <span className={project.status === 'approved' ? 'pill success' : 'pill'}>
-            {project.status === 'approved' ? 'Approved' : 'Needs your review'}
+          <span className={project.status === 'approved' ? 'pill success' : project.status === 'completed' ? 'pill completed' : 'pill'}>
+            {project.status === 'approved' ? 'Approved' : project.status === 'completed' ? 'Completed' : 'Needs your review'}
           </span>
-          <button className="button button-primary" onClick={approve} disabled={project.status === 'approved'}>
-            {project.status === 'approved' ? '✓ Version approved' : 'Approve this version'}
+          <button className="button button-primary" onClick={approve} disabled={project.status !== 'in_review'}>
+            {project.status === 'approved' ? '✓ Version approved' : project.status === 'completed' ? 'Project completed' : 'Approve this version'}
           </button>
         </div>
       </div>
@@ -111,6 +112,9 @@ export function ClientReview({ project, onBack, onUpdate, standalone = false }: 
             ))}
           </div>
 
+          {project.status === 'completed' ? (
+            <div className="completed-review-note">This project has been completed by the editor. This review is now read-only.</div>
+          ) : (
           <form className="comment-form" onSubmit={addComment}>
             <label className="comment-name-field">
               <span>Your name</span>
@@ -125,6 +129,7 @@ export function ClientReview({ project, onBack, onUpdate, standalone = false }: 
               <button className="button button-primary" type="submit">Send feedback</button>
             </div>
           </form>
+          )}
         </aside>
       </div>
     </section>
