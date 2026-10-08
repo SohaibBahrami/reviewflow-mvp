@@ -182,3 +182,9 @@ We will keep two viable options documented:
 The DIY path gives us more control but also makes us responsible for transcoding jobs, retries, compatibility, cleanup, and scaling. The managed path is likely the better production choice unless the added control of the DIY stack becomes economically or technically worthwhile.
 
 In either design, the product claim is “prevent casual downloading and unauthorized sharing,” not “make screen recording impossible.”
+
+## 2026-10-08 — Repository integrity repair
+
+The project archives previously included Git refs without the corresponding Git object database, which made the local repository appear to have branches pointing at missing commits. The project was rebuilt into a valid Git repository with the current application snapshot and a structured commit history preserved as real Git objects.
+
+Future project archives will be validated with `git fsck --full` before delivery.
