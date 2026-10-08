@@ -38,7 +38,31 @@ Browser
          +-- signed playback token for client review
 ```
 
-### Why Stream instead of raw R2 for video
+### DIY secure video alternative
+
+We can build the delivery layer ourselves instead of using a managed video service, but the important distinction is that **private MP4 + a signed URL is access control, not download prevention**. R2 presigned URLs intentionally grant whoever has the URL temporary access to the object.
+
+A self-built review path would look like this:
+
+```text
+Editor
+  |
+  +-- private original MP4 -> R2
+  |
+  +-- transcoding job -> HLS renditions + segments
+                            |
+                            +-- encrypted segments
+                            +-- short-lived manifest/token
+                                      |
+                                      v
+Client review player <- authenticated Worker
+```
+
+The Worker would authorize the review link and issue short-lived access to the playlist and media segments. We would never expose the R2 credentials or permanent public object URL to the browser. HLS/DASH and encrypted-media technologies can support more controlled playback, but they do not make the visible video impossible to copy or record. Browser DRM is a significantly more complex layer and should only be considered if customers actually need it.
+
+The trade-off is engineering complexity: **R2 + Worker + our own transcoding pipeline** gives us control and can be inexpensive at low volume, but we would own encoding, retries, storage cleanup, playback compatibility, and scaling. Cloudflare Stream removes most of that operational work while providing signed playback tokens and download restrictions.
+
+## Why Stream instead of raw R2 for video
 
 R2 remains useful for ordinary file storage, but raw MP4 delivery is the wrong foundation for a review product where the video is valuable intellectual property. Cloudflare Stream handles video encoding and adaptive playback and supports HLS/DASH, while signed tokens can require authorization for playback. This lets the app avoid exposing a permanent public MP4 URL.
 
