@@ -1,9 +1,17 @@
 import type { ReactNode } from 'react'
+import type { Theme } from '../lib/theme'
 import { Logo } from './Logo'
+import { ThemeToggle } from './ThemeToggle'
 
-type Props = { children: ReactNode; active: string; onNavigate: (path: string) => void }
+type Props = {
+  children: ReactNode
+  active: string
+  theme: Theme
+  onNavigate: (path: string) => void
+  onToggleTheme: () => void
+}
 
-export function Shell({ children, active, onNavigate }: Props) {
+export function Shell({ children, active, theme, onNavigate, onToggleTheme }: Props) {
   const links = [
     ['/', 'Dashboard'],
     ['/new', 'New project'],
@@ -25,7 +33,7 @@ export function Shell({ children, active, onNavigate }: Props) {
               </button>
             ))}
           </nav>
-          <div className="topbar-badge">Prototype mode</div>
+          <div className="topbar-actions"><div className="topbar-badge">Prototype mode</div><ThemeToggle theme={theme} onToggle={onToggleTheme} /></div>
         </div>
       </header>
       <main className="page-wrap">{children}</main>
