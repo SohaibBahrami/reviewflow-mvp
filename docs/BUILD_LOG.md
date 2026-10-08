@@ -196,3 +196,36 @@ Future project archives will be validated with `git fsck --full` before delivery
 - No dependency added; this uses browser storage APIs directly.
 - Existing videos created before this change cannot be recovered after a refresh because their temporary URLs were never persisted.
 
+
+## 2026-10-08 — Reliability and project lifecycle
+
+### Reliability
+
+A browser hang was reported while working with local videos. The important root cause was not a missing error message: the app was hydrating every saved video at startup and could load multiple large blobs into memory at once.
+
+Changes:
+
+- Local videos are now loaded only when the user opens a project/review that needs the video.
+- Added an application error boundary with a clear reload/recovery screen.
+- Added recoverable notices for storage failures and browser-level runtime errors.
+- Added an inline video playback error state with a retry action.
+- Added handling around local video restoration failures.
+
+This does not claim to catch a browser-level `RESULT_CODE_HUNG` after the browser process has actually become unresponsive; the primary fix is reducing the work that could cause the hang in the first place.
+
+### Project lifecycle
+
+Projects now have three lifecycle states:
+
+```text
+in review → approved → completed
+                    ↘ reopen → in review
+```
+
+- Completed projects are separated into an archive section on the dashboard.
+- Editors can mark a project complete or reopen it.
+- Editors can delete projects; local video data is deleted from IndexedDB as part of the same action when possible.
+- Completed client reviews become read-only.
+- Starting a new version reopens a completed project automatically.
+
+No dependency was added for this milestone.
