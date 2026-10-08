@@ -45,6 +45,8 @@ export function loadProjects(): Project[] {
       ...project,
       shareToken: project.shareToken || crypto.randomUUID(),
       status: project.status || 'in_review',
+      statusBeforeTrash: project.statusBeforeTrash || undefined,
+      trashedAt: project.trashedAt || undefined,
     })) as Project[]
   } catch (error) {
     console.error('ReviewFlow project storage could not be loaded.', error)

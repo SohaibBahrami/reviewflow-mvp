@@ -42,7 +42,7 @@ function ProjectCard({ project, onOpen, onDelete, onToggleComplete }: {
         <button className="button button-secondary" onClick={() => onToggleComplete(project.id)}>
           {project.status === 'completed' ? 'Reopen project' : 'Mark complete'}
         </button>
-        <button className="button button-danger" onClick={() => onDelete(project.id)}>Delete</button>
+        <button className="button button-danger" onClick={() => onDelete(project.id)}>Move to trash</button>
       </div>
     </article>
   )
