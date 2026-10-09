@@ -27,20 +27,34 @@ function collectTypeScriptFiles(directory) {
   return files
 }
 
-test('supports English, French, Spanish, Greek, and Portuguese using standard locale codes', () => {
-  assert.deepEqual(LOCALE_OPTIONS.map(({ code }) => code), ['en', 'fr', 'es', 'el', 'pt'])
+test('supports English, French, Spanish, German, and Portuguese using standard locale codes', () => {
+  assert.deepEqual(LOCALE_OPTIONS.map(({ code }) => code), ['en', 'fr', 'es', 'de', 'pt'])
   assert.equal(normalizeLocale('fr-FR'), 'fr')
   assert.equal(normalizeLocale('es_ES'), 'es')
-  assert.equal(normalizeLocale('el-GR'), 'el')
+  assert.equal(normalizeLocale('de-DE'), 'de')
   assert.equal(normalizeLocale('pt-BR'), 'pt')
-  assert.equal(normalizeLocale('de-DE'), null)
+  assert.equal(normalizeLocale('el-GR'), null)
+})
+
+test('language picker uses vector flag assets for every supported language', () => {
+  assert.deepEqual(LOCALE_OPTIONS.map(({ code }) => code), ['en', 'fr', 'es', 'de', 'pt'])
+  const flagSource = fs.readFileSync(path.resolve('src/components/LanguageFlag.tsx'), 'utf8')
+  const shellSource = fs.readFileSync(path.resolve('src/components/Shell.tsx'), 'utf8')
+  for (const option of LOCALE_OPTIONS) {
+    assert.equal(option.code.toUpperCase().length, 2)
+    assert.ok(option.nativeLabel.trim())
+    assert.match(flagSource, new RegExp(`case '${option.code}'`), `${option.code} should have an SVG flag`)
+  }
+  assert.match(shellSource, /<LanguageFlag locale=\{locale\}/)
+  assert.match(shellSource, /role="menuitemradio"/)
+  assert.doesNotMatch(flagSource, /🇬🇧|🇫🇷|🇪🇸|🇩🇪|🇵🇹/, 'flag display should not depend on emoji font support')
 })
 
 test('saved language cookie takes precedence over browser language', () => {
   assert.equal(getLocaleFromPreferences('reviewflow_locale=fr', ['es-ES', 'en-US']), 'fr')
-  assert.equal(getLocaleFromPreferences('', ['el-GR', 'en-US']), 'el')
+  assert.equal(getLocaleFromPreferences('', ['de-DE', 'en-US']), 'de')
   assert.equal(getLocaleFromPreferences('reviewflow_locale=unsupported', ['pt-BR']), 'pt')
-  assert.equal(getLocaleFromPreferences('', ['de-DE']), 'en')
+  assert.equal(getLocaleFromPreferences('', ['de-DE']), 'de')
 })
 
 test('cookie parsing is robust to spaces, multiple cookies, and malformed encoding', () => {

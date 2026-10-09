@@ -294,7 +294,7 @@ Added focused Node built-in tests for required project details, Trash counts, an
 
 ### Changes
 
-- Project creation now requires a selected video. Missing-video errors are translated in English, French, Spanish, Greek, and Portuguese.
+- Project creation now requires a selected video. Missing-video errors are translated in English, French, Spanish, German, and Portuguese.
 - The project form uses its own validation path so missing required fields produce the app's translated error instead of relying only on browser-native validation.
 - The editor-side Add feedback button is disabled until the comment contains non-whitespace text; the textarea is marked required. The client-side form already had the corresponding guard.
 - No dependencies were added.
@@ -304,3 +304,36 @@ Added focused Node built-in tests for required project details, Trash counts, an
 - `node --test`: 14 tests passed.
 - `git diff --check`: passed.
 - `npm run build` was attempted, but this verification checkout has no installed React, Supabase, or Vite packages. The full production build therefore remains unverified here and must be run after dependencies are installed.
+
+
+## 2026-10-09 — Compact language picker and competitive UX review
+
+### Language picker
+
+- Replaced long visible language names with a compact SVG flag plus two-letter code in the top bar. The opened language menu shows vector flags, native language names, and locale codes; it supports keyboard focus and Escape to close.
+- Rendered United Kingdom, France, Spain, Greece, and Portugal flags as inline SVG, avoiding emoji-font rendering issues and additional dependencies.
+
+### Competitive UX review
+
+Reviewed publicly available feature pages and support material from Frame.io, Wipster, and Ziflow. Patterns worth considering for ReviewFlow:
+
+- Keep timestamped comments beside the video and make the associated moment easy to revisit.
+- Make open/resolved feedback and approval state obvious at a glance.
+- Preserve feedback against the exact video version rather than clearing it when a new version starts.
+- Keep client review low-friction, while adding share-link controls such as expiry, password protection, and download permissions when real cloud sharing is implemented.
+- Prioritize a responsive review screen and a compact dashboard over enterprise-style team, campaign, and integration features.
+
+These are roadmap recommendations, not claims that every competitor feature is implemented in this prototype. Security controls on review links should be enforced by the eventual server/storage layer, not only by the client UI.
+
+### References reviewed
+
+- Frame.io V4 — Shares and review-link settings: https://help.frame.io/en/articles/9105232-shares-in-frame-io
+- Wipster — product features: https://www.wipster.io/product
+- Ziflow — video production workflow: https://www.ziflow.com/use-cases/video-production-software
+- Ziflow — video/audio review controls: https://help.ziflow.com/hc/en-us/articles/30725236648212-Review-video-and-audio-proofs
+
+### Verification
+
+- `npm test`: 15 tests passed after the SVG flag/dropdown fix.
+- `git diff --check`: passed.
+- `npm run build`: attempted, but blocked because React, Supabase, and Vite are not installed in this verification checkout; the production build remains unverified here.
