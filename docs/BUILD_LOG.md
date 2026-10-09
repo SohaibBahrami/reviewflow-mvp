@@ -244,7 +244,7 @@ Deletion is now reversible by default. The editor moves projects to Trash instea
 - Added a dedicated Trash area in the main navigation with a trash-can icon and count.
 - Added Restore project for deleted projects.
 - Added a separate permanent-delete confirmation that removes the project and its browser-local video.
-- Revoked active object URLs when a project enters Trash so deleted projects do not keep video memory alive.
+- Keep active object URLs valid while a project is in Trash so Undo/Restore preserves playback; revoke URLs only after permanent deletion.
 - Prevented trashed projects from resolving through their review links.
 - Kept completed projects separate from Trash.
 
@@ -271,3 +271,36 @@ Start the cloud migration with identity and database authorization, while leavin
 ### Next migration step
 
 After the account foundation is configured and tested, migrate editor project metadata and review comments to Supabase while keeping video objects out of Postgres.
+
+
+## 2026-10-09 — Project creation and deletion audit
+
+### Findings and fixes
+
+- Project names and client names are required; whitespace-only values are rejected and no placeholder project is silently created. A follow-up form audit made video upload mandatory for project creation.
+- Removed Move to Trash from dashboard cards. Projects can be moved to Trash only from the editor review screen; permanent deletion remains available in Trash.
+- Dashboard active-work filters now exclude trashed projects, which fixes the main reason a deleted project appeared to remain active.
+- Enforced the three-project Trash limit in both the initial delete action and confirmation handler. When Trash is full, ReviewFlow takes the user to Trash and explains how to make room.
+- Kept local video object URLs alive while an item is in Trash so Undo/Restore preserves playback.
+- If deleting a stored video fails, the project remains in Trash rather than losing its metadata and leaving an orphaned video in IndexedDB.
+- Failed/cancelled video restoration can be retried when the project is opened again.
+
+### Tests
+
+Added focused Node built-in tests for required project details, Trash counts, and the exact three-item Trash limit. No test framework or runtime dependency was added.
+
+
+## 2026-10-09 — Required video and form validation follow-up
+
+### Changes
+
+- Project creation now requires a selected video. Missing-video errors are translated in English, French, Spanish, Greek, and Portuguese.
+- The project form uses its own validation path so missing required fields produce the app's translated error instead of relying only on browser-native validation.
+- The editor-side Add feedback button is disabled until the comment contains non-whitespace text; the textarea is marked required. The client-side form already had the corresponding guard.
+- No dependencies were added.
+
+### Verification
+
+- `node --test`: 14 tests passed.
+- `git diff --check`: passed.
+- `npm run build` was attempted, but this verification checkout has no installed React, Supabase, or Vite packages. The full production build therefore remains unverified here and must be run after dependencies are installed.
