@@ -85,7 +85,7 @@ Client approves the version
 Editor can create the next version
 ```
 
-`New version` currently increments the version number, returns the project to `in_review`, and clears the previous version's comments. The local prototype still uses the same browser-only video object; cloud versioned storage comes later with R2.
+`New version` increments the version number and returns the project to `in_review`. Previous comments are now kept in a read-only history scoped to their version. The local prototype still uses the same browser-only video object; storing a separate video file for each version remains a future step.
 
 ### Validation note
 
@@ -311,7 +311,7 @@ Added focused Node built-in tests for required project details, Trash counts, an
 ### Language picker
 
 - Replaced long visible language names with a compact SVG flag plus two-letter code in the top bar. The opened language menu shows vector flags, native language names, and locale codes; it supports keyboard focus and Escape to close.
-- Rendered United Kingdom, France, Spain, Greece, and Portugal flags as inline SVG, avoiding emoji-font rendering issues and additional dependencies.
+- Rendered United Kingdom, France, Spain, Germany, and Portugal flags as inline SVG, avoiding emoji-font rendering issues and additional dependencies.
 
 ### Competitive UX review
 
@@ -319,7 +319,7 @@ Reviewed publicly available feature pages and support material from Frame.io, Wi
 
 - Keep timestamped comments beside the video and make the associated moment easy to revisit.
 - Make open/resolved feedback and approval state obvious at a glance.
-- Preserve feedback against the exact video version rather than clearing it when a new version starts.
+- Preserve feedback against the exact video version rather than clearing it when a new version starts; this is now implemented in the local prototype.
 - Keep client review low-friction, while adding share-link controls such as expiry, password protection, and download permissions when real cloud sharing is implemented.
 - Prioritize a responsive review screen and a compact dashboard over enterprise-style team, campaign, and integration features.
 
@@ -337,3 +337,19 @@ These are roadmap recommendations, not claims that every competitor feature is i
 - `npm test`: 15 tests passed after the SVG flag/dropdown fix.
 - `git diff --check`: passed.
 - `npm run build`: attempted, but blocked because React, Supabase, and Vite are not installed in this verification checkout; the production build remains unverified here.
+
+
+## 2026-10-09 — Version-specific feedback history
+
+- Starting a new version now archives the previous version's status and comments instead of discarding them.
+- Current-version feedback starts empty, preventing comments from an older version's timestamps from appearing on the new review.
+- Editor view includes a compact, collapsed-by-default history for previous versions and their feedback. Client preview continues to expose only current-version feedback.
+- Existing locally saved projects are migrated in place by defaulting missing `versionHistory` fields to an empty array.
+- No new dependencies.
+
+### Verification
+
+- `node --test`: 16 tests passed.
+- `git diff --check`: passed.
+- Added regression coverage for archive preservation, current-version separation, status reset, and source immutability.
+- `npm run build` remains unverified here because this checkout does not have React, Supabase, or Vite installed.

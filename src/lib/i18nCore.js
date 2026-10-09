@@ -209,7 +209,13 @@ Select a video file before creating the project.	Sélectionnez un fichier vidéo
 Your email or password could not be accepted. Check your details and try again.	Votre e-mail ou mot de passe n’a pas été accepté. Vérifiez vos informations et réessayez.	No se ha aceptado el correo o la contraseña. Comprueba los datos e inténtalo de nuevo.	Deine E-Mail-Adresse oder dein Passwort wurde nicht akzeptiert. Prüfe deine Angaben und versuche es erneut.	O email ou a palavra-passe não foram aceites. Verifique os dados e tente novamente.
 
 You	Vous	Tú	Du	Você
-ReviewFlow — Client approvals without the mess	ReviewFlow — Les validations client, en toute simplicité	ReviewFlow — Aprobaciones de clientes sin complicaciones	ReviewFlow — Kundenfreigaben ohne Chaos	ReviewFlow — Aprovações de clientes sem complicações`.trim()
+ReviewFlow — Client approvals without the mess	ReviewFlow — Les validations client, en toute simplicité	ReviewFlow — Aprobaciones de clientes sin complicaciones	ReviewFlow — Kundenfreigaben ohne Chaos	ReviewFlow — Aprovações de clientes sem complicações
+Feedback from earlier versions is kept here for reference.	Les commentaires des versions précédentes sont conservés ici à titre de référence.	Los comentarios de versiones anteriores se conservan aquí como referencia.	Feedback aus früheren Versionen bleibt hier als Referenz erhalten.	O feedback das versões anteriores fica guardado aqui como referência.
+No feedback was recorded for this version.	Aucun commentaire n’a été enregistré pour cette version.	No se registraron comentarios para esta versión.	Für diese Version wurde kein Feedback erfasst.	Não foi registado feedback para esta versão.
+Open	Ouvert	Abierto	Offen	Aberto
+Previous versions	Versions précédentes	Versiones anteriores	Vorherige Versionen	Versões anteriores
+Resolved	Résolu	Resuelto	Erledigt	Resolvido
+Version feedback count	Nombre de commentaires : {count}	Comentarios: {count}	Feedback: {count}	Comentários: {count}`.trim()
 
 const rows = rowsText.split('\n').filter((line) => line.length > 0).map((line) => {
   const parts = line.split('\t')

@@ -8,6 +8,8 @@ export function canMoveProjectToTrash(projects: readonly Project[], id: string):
 
 export function getProjectValidationError(title: string, client: string, hasVideo: boolean): string | null
 
+export function startNextVersion(project: Project, archivedAt?: string): Project
+
 export function getDashboardProjectGroups(projects: readonly Project[]): {
   active: Project[]
   completed: Project[]

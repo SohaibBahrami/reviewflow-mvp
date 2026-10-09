@@ -1,7 +1,8 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Theme } from '../lib/theme'
 import { buildPreferenceCookie, COOKIE_NAMES, hasSeenCookieNotice } from '../lib/i18nCore.js'
 import { useI18n } from '../lib/i18n'
+import { LanguageFlag } from './LanguageFlag'
 import { Logo } from './Logo'
 import { ThemeToggle } from './ThemeToggle'
 
@@ -26,9 +27,41 @@ function saveNoticeCookie() {
 
 export function Shell({ children, active, theme, clientMode = false, trashCount = 0, onNavigate, onToggleTheme }: Props) {
   const { t, locale, setLocale, localeOptions } = useI18n()
+  const selectedLanguage = localeOptions.find((option) => option.code === locale) ?? localeOptions[0]
+  const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false)
+  const languagePickerRef = useRef<HTMLDivElement>(null)
+  const languageTriggerRef = useRef<HTMLButtonElement>(null)
   const [showCookieNotice, setShowCookieNotice] = useState(() => !hasSeenCookieNotice(document.cookie))
   const [showCookieSettings, setShowCookieSettings] = useState(false)
   const links = [['/', 'Projects'], ['/new', 'Create project']] as const
+
+  useEffect(() => {
+    if (!isLanguageMenuOpen) return
+
+    function closeOnOutsidePointer(event: PointerEvent) {
+      if (!languagePickerRef.current?.contains(event.target as Node)) setIsLanguageMenuOpen(false)
+    }
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setIsLanguageMenuOpen(false)
+        languageTriggerRef.current?.focus()
+      }
+    }
+
+    document.addEventListener('pointerdown', closeOnOutsidePointer)
+    document.addEventListener('keydown', closeOnEscape)
+    languagePickerRef.current?.querySelector<HTMLButtonElement>('[role="menuitemradio"][aria-checked="true"]')?.focus()
+    return () => {
+      document.removeEventListener('pointerdown', closeOnOutsidePointer)
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [isLanguageMenuOpen])
+
+  function chooseLanguage(nextLocale: typeof locale) {
+    setLocale(nextLocale)
+    setIsLanguageMenuOpen(false)
+    languageTriggerRef.current?.focus()
+  }
 
   function dismissCookieNotice() {
     saveNoticeCookie()
@@ -53,12 +86,40 @@ export function Shell({ children, active, theme, clientMode = false, trashCount 
           )}
           <div className="topbar-actions">
             {!clientMode && <span className="topbar-badge">{t('Local prototype')}</span>}
-            <label className="language-picker">
-              <span className="sr-only">{t('Language')}</span>
-              <select value={locale} onChange={(event) => setLocale(event.target.value as typeof locale)} aria-label={t('Language')}>
-                {localeOptions.map((option) => <option key={option.code} value={option.code}>{option.nativeLabel}</option>)}
-              </select>
-            </label>
+            <div className="language-picker" ref={languagePickerRef}>
+              <button
+                ref={languageTriggerRef}
+                className="language-picker-trigger"
+                type="button"
+                title={`${t('Language')}: ${selectedLanguage.nativeLabel}`}
+                aria-label={`${t('Language')}: ${selectedLanguage.nativeLabel}`}
+                aria-haspopup="menu"
+                aria-expanded={isLanguageMenuOpen}
+                onClick={() => setIsLanguageMenuOpen((open) => !open)}
+              >
+                <LanguageFlag locale={locale} />
+                <span className="language-picker-code">{locale.toUpperCase()}</span>
+                <svg className="language-picker-chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              </button>
+              {isLanguageMenuOpen && (
+                <div className="language-menu" role="menu" aria-label={t('Language')}>
+                  {localeOptions.map((option) => (
+                    <button
+                      key={option.code}
+                      className="language-menu-item"
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={locale === option.code}
+                      onClick={() => chooseLanguage(option.code)}
+                    >
+                      <LanguageFlag locale={option.code} />
+                      <span>{option.nativeLabel}</span>
+                      <span className="language-menu-code">{option.code.toUpperCase()}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             {!clientMode && <button className="cookie-settings-trigger" type="button" onClick={() => setShowCookieSettings(true)}>{t('Cookie settings')}</button>}
             <ThemeToggle theme={theme} onToggle={onToggleTheme} />
           </div>

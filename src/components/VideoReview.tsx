@@ -3,6 +3,7 @@ import type { Project } from '../lib/types'
 import { formatTime, relativeDate } from '../lib/format'
 import { VideoPlayer, type VideoPlayerHandle } from './VideoPlayer'
 import { useI18n } from '../lib/i18n'
+import { startNextVersion } from '../lib/projectRules'
 
 interface Props {
   project: Project
@@ -51,7 +52,7 @@ export function VideoReview({ project, onBack, onClientPreview, onUpdate, onDele
   }
 
   function createVersion() {
-    onUpdate({ ...project, version: project.version + 1, status: 'in_review', completedAt: undefined, comments: [] })
+    onUpdate(startNextVersion(project))
   }
 
   async function copyClientLink() {
@@ -149,6 +150,43 @@ export function VideoReview({ project, onBack, onClientPreview, onUpdate, onDele
               </article>
             ))}
           </div>
+
+          {project.versionHistory.length > 0 && (
+            <section className="version-history" aria-label={t('Previous versions')}>
+              <p className="eyebrow">{t('Previous versions')}</p>
+              <p className="muted version-history-note">{t('Feedback from earlier versions is kept here for reference.')}</p>
+              <div className="version-history-list">
+                {[...project.versionHistory].sort((a, b) => b.version - a.version).map((version) => (
+                  <details className="version-history-item" key={version.version}>
+                    <summary>
+                      <strong>{t('Version {version}', { version: version.version })}</strong>
+                      <span className="muted">
+                        {version.status === 'approved' ? t('Approved') : version.status === 'completed' ? t('Completed') : t('In review')}
+                        {' · '}{t('Version feedback count', { count: version.comments.length })}
+                      </span>
+                    </summary>
+                    <div className="version-history-comments">
+                      {version.comments.length === 0 ? (
+                        <p className="muted">{t('No feedback was recorded for this version.')}</p>
+                      ) : version.comments.slice().sort((a, b) => a.timestamp - b.timestamp).map((comment) => (
+                        <article key={comment.id} className={comment.status === 'resolved' ? 'comment resolved' : 'comment'}>
+                          <span className="timestamp">{formatTime(comment.timestamp)}</span>
+                          <div className="comment-body">
+                            <div className="comment-author">{comment.author}</div>
+                            <p>{comment.text}</p>
+                            <div className="comment-footer">
+                              <span>{relativeDate(comment.createdAt, locale)}</span>
+                              <span>{comment.status === 'resolved' ? t('Resolved') : t('Open')}</span>
+                            </div>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  </details>
+                ))}
+              </div>
+            </section>
+          )}
 
           <form className="comment-form" onSubmit={addComment}>
             <input value={author} onChange={(e) => setAuthor(e.target.value)} placeholder={t('Your name')} aria-label={t('Your name')} />
