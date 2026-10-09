@@ -7,13 +7,31 @@
     <link rel="icon" type="image/svg+xml" href="/reviewflow-mark.svg" />
     <script>
       (() => {
-        const saved = localStorage.getItem('reviewflow-theme')
-        const theme = saved === 'light' || saved === 'dark'
-          ? saved
-          : (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+        const supportedLanguages = new Set(['en', 'fr', 'es', 'el', 'pt'])
+        const languagePart = document.cookie.split(';').map((part) => part.trim()).find((part) => part.startsWith('reviewflow_locale='))
+        let locale = 'en'
+        if (languagePart) {
+          try {
+            const candidate = decodeURIComponent(languagePart.slice('reviewflow_locale='.length)).toLowerCase().split(/[-_]/)[0]
+            if (supportedLanguages.has(candidate)) locale = candidate
+          } catch { /* Ignore an invalid preference cookie. */ }
+        } else {
+          const browserLanguages = navigator.languages || [navigator.language]
+          for (const language of browserLanguages) {
+            const candidate = String(language || '').toLowerCase().split(/[-_]/)[0]
+            if (supportedLanguages.has(candidate)) { locale = candidate; break }
+          }
+        }
+        document.documentElement.lang = locale
+        let theme = 'dark'
+        try {
+          const saved = localStorage.getItem('reviewflow-theme')
+          theme = saved === 'light' || saved === 'dark' ? saved : (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+        } catch { theme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark' }
         document.documentElement.dataset.theme = theme
         document.documentElement.style.colorScheme = theme
-        document.querySelector('meta[name="theme-color"]').setAttribute('content', theme === 'light' ? '#f5f6fa' : '#0f1115')
+        const themeColor = document.querySelector('meta[name="theme-color"]')
+        if (themeColor) themeColor.setAttribute('content', theme === 'light' ? '#f5f6fa' : '#0f1115')
       })()
     </script>
     <style>

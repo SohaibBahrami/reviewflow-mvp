@@ -1,3 +1,4 @@
+import { useI18n } from '../lib/i18n'
 interface Props {
   open: boolean
   title: string
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export function ConfirmDialog({ open, title, description, confirmLabel, danger = false, onConfirm, onCancel }: Props) {
+  const { t } = useI18n()
   if (!open) return null
 
   return (
@@ -22,11 +24,11 @@ export function ConfirmDialog({ open, title, description, confirmLabel, danger =
         onMouseDown={(event) => event.stopPropagation()}
       >
         <div className="confirm-dialog-icon" aria-hidden="true">{danger ? '!' : '↗'}</div>
-        <p className="eyebrow">Please confirm</p>
+        <p className="eyebrow">{t('Please confirm')}</p>
         <h2 id="confirm-dialog-title">{title}</h2>
         <p id="confirm-dialog-description" className="confirm-dialog-copy">{description}</p>
         <div className="confirm-dialog-actions">
-          <button type="button" className="button button-secondary" onClick={onCancel}>Cancel</button>
+          <button type="button" className="button button-secondary" onClick={onCancel}>{t('Cancel')}</button>
           <button type="button" className={danger ? 'button button-danger' : 'button button-primary'} onClick={onConfirm}>{confirmLabel}</button>
         </div>
       </div>

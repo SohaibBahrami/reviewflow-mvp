@@ -11,6 +11,8 @@ import { loadProjects, saveProjects } from './lib/storage'
 import { deleteLocalVideo, getLocalVideo } from './lib/videoStorage'
 import { applyTheme, getTheme, toggleTheme, type Theme } from './lib/theme'
 import type { Project } from './lib/types'
+import { canMoveProjectToTrash, countTrashedProjects, MAX_TRASH_PROJECTS } from './lib/projectRules'
+import { useI18n } from './lib/i18n'
 
 function getRoute() {
   const raw = window.location.hash.replace(/^#/, '') || '/'
@@ -20,6 +22,7 @@ function getRoute() {
 }
 
 export default function App() {
+  const { t } = useI18n()
   const [route, setRoute] = useState(getRoute)
   const [projects, setProjects] = useState<Project[]>(loadProjects)
   const [theme, setTheme] = useState<Theme>(() => getTheme())
@@ -43,17 +46,17 @@ export default function App() {
 
   useEffect(() => {
     const result = saveProjects(projects)
-    if (!result.ok) setNotice(result.message ?? 'Your changes could not be saved.')
-  }, [projects])
+    if (!result.ok) setNotice(t('Your changes could not be saved.'))
+  }, [projects, t])
 
   useEffect(() => {
     const onError = (event: ErrorEvent) => {
       console.error('ReviewFlow browser error', event.error ?? event.message)
-      setNotice('Something went wrong in the page. Your saved projects are kept locally; reload if the page becomes unresponsive.')
+      setNotice(t('Something went wrong in the page. Your saved projects are kept locally; reload if the page becomes unresponsive.'))
     }
     const onUnhandledRejection = (event: PromiseRejectionEvent) => {
       console.error('ReviewFlow unhandled promise rejection', event.reason)
-      setNotice('Something went wrong while completing that action. Please try again.')
+      setNotice(t('Something went wrong while completing that action. Please try again.'))
     }
     window.addEventListener('error', onError)
     window.addEventListener('unhandledrejection', onUnhandledRejection)
@@ -61,7 +64,7 @@ export default function App() {
       window.removeEventListener('error', onError)
       window.removeEventListener('unhandledrejection', onUnhandledRejection)
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     if (!undoDeadline || !undoDeleteId) return
@@ -136,9 +139,13 @@ export default function App() {
     const hydrateActiveVideo = async () => {
       try {
         const blob = await getLocalVideo(target.localVideoId!)
-        if (cancelled) return
+        if (cancelled) {
+          hydratedVideoIdsRef.current.delete(target.localVideoId!)
+          return
+        }
         if (!blob) {
-          setNotice('A saved video could not be found. Try re-uploading the video in this project.')
+          hydratedVideoIdsRef.current.delete(target.localVideoId!)
+          setNotice(t('A saved video could not be found. Try re-uploading the video in this project.'))
           return
         }
 
@@ -148,8 +155,9 @@ export default function App() {
           item.id === target.id ? { ...item, localVideoUrl: url } : item
         )))
       } catch (error) {
+        hydratedVideoIdsRef.current.delete(target.localVideoId!)
         console.error('ReviewFlow could not restore local video.', error)
-        if (!cancelled) setNotice('A saved video could not be loaded. Try re-uploading the video in this project.')
+        if (!cancelled) setNotice(t('A saved video could not be loaded. Try reopening the project or re-uploading the video.'))
       }
     }
 
@@ -178,7 +186,16 @@ export default function App() {
   }
 
   function requestDeleteProject(id: string) {
-    if (!projects.some((item) => item.id === id)) return
+    const target = projects.find((item) => item.id === id && item.status !== 'trashed')
+    if (!target) return
+
+    if (!canMoveProjectToTrash(projects, id)) {
+      setNotice(t('Trash is full ({count}/{max}). Restore a project or permanently delete one in Trash before deleting another.', { count: countTrashedProjects(projects), max: MAX_TRASH_PROJECTS }))
+      navigate('/trash')
+      return
+    }
+
+    setNotice(null)
     setDeleteTargetId(id)
   }
 
@@ -187,22 +204,37 @@ export default function App() {
     if (!id) return
 
     const target = projects.find((item) => item.id === id)
-    if (!target) {
+    if (!target || target.status === 'trashed') {
       setDeleteTargetId(null)
       return
     }
 
-    if (videoUrlsRef.current[id]) {
-      URL.revokeObjectURL(videoUrlsRef.current[id])
-      delete videoUrlsRef.current[id]
+    // Recheck at confirmation time too, so the three-item limit cannot be bypassed.
+    if (!canMoveProjectToTrash(projects, id)) {
+      setDeleteTargetId(null)
+      setNotice(t('Trash is full ({count}/{max}). Restore a project or permanently delete one in Trash before deleting another.', { count: countTrashedProjects(projects), max: MAX_TRASH_PROJECTS }))
+      navigate('/trash')
+      return
     }
 
+    // Capture the previous non-trash status before entering the state updater.
+    // The statusBeforeTrash field deliberately excludes 'trashed'; mapping explicitly
+    // also protects this invariant if data is stale or corrupted.
+    const statusBeforeTrash: NonNullable<Project['statusBeforeTrash']> =
+      target.status === 'completed'
+        ? 'completed'
+        : target.status === 'approved'
+          ? 'approved'
+          : 'in_review'
+
+    // Keep the object URL alive while the project is in Trash. Undo/Restore should
+    // return the project with a working player; revoke only on permanent deletion.
     setProjects((current) => current.map((item) => (
       item.id === id
         ? {
             ...item,
             status: 'trashed',
-            statusBeforeTrash: target.status === 'trashed' ? 'in_review' : target.status,
+            statusBeforeTrash,
             trashedAt: new Date().toISOString(),
           }
         : item
@@ -245,19 +277,22 @@ export default function App() {
       return
     }
 
-    if (videoUrlsRef.current[id]) {
-      URL.revokeObjectURL(videoUrlsRef.current[id])
-      delete videoUrlsRef.current[id]
-    }
-
-    let videoDeleteFailed = false
     if (target.localVideoId) {
       try {
         await deleteLocalVideo(target.localVideoId)
       } catch (error) {
-        videoDeleteFailed = true
         console.error('ReviewFlow could not permanently delete the local video.', error)
+        // Keep the trashed project visible so the user can retry. Removing its
+        // metadata here would orphan the video in IndexedDB.
+        setPermanentDeleteTargetId(null)
+        setNotice(t('The video could not be deleted from browser storage. The project is still in Trash; please try again.'))
+        return
       }
+    }
+
+    if (videoUrlsRef.current[id]) {
+      URL.revokeObjectURL(videoUrlsRef.current[id])
+      delete videoUrlsRef.current[id]
     }
 
     setProjects((current) => current.filter((item) => item.id !== id))
@@ -265,10 +300,6 @@ export default function App() {
     if (undoDeleteId === id) {
       setUndoDeleteId(null)
       setUndoDeadline(null)
-    }
-
-    if (videoDeleteFailed) {
-      setNotice('The project was removed, but its local video could not be deleted from browser storage.')
     }
   }
 
@@ -302,13 +333,13 @@ export default function App() {
   } else if (route.path === '/trash') {
     page = <Trash projects={projects} onBack={() => navigate('/')} onRestore={restoreProject} onDeletePermanently={requestPermanentDelete} />
   } else if (route.path === '/share') {
-    page = <section className="narrow-page"><p className="eyebrow">Review link</p><h1>This review link is no longer available.</h1><p className="hero-copy">Ask the editor for a new link to the current video version.</p></section>
+    page = <section className="narrow-page"><p className="eyebrow">{t('Review link')}</p><h1>{t('This review link is no longer available.')}</h1><p className="hero-copy">{t('Ask the editor for a new link to the current video version.')}</p></section>
   } else if (route.path === '/new') {
     page = <NewProject onCreate={createProject} />
   } else if (route.path === '/') {
-    page = <Dashboard projects={projects} onNew={() => navigate('/new')} onOpen={(id) => navigate(`/review/${id}`)} onDelete={requestDeleteProject} onToggleComplete={toggleProjectComplete} />
+    page = <Dashboard projects={projects} onNew={() => navigate('/new')} onOpen={(id) => navigate(`/review/${id}`)} onToggleComplete={toggleProjectComplete} />
   } else {
-    page = <Dashboard projects={projects} onNew={() => navigate('/new')} onOpen={(id) => navigate(`/review/${id}`)} onDelete={requestDeleteProject} onToggleComplete={toggleProjectComplete} />
+    page = <Dashboard projects={projects} onNew={() => navigate('/new')} onOpen={(id) => navigate(`/review/${id}`)} onToggleComplete={toggleProjectComplete} />
   }
 
   return (
@@ -324,32 +355,32 @@ export default function App() {
         <div className="app-notice" role="status">
           <div className="app-notice-inner">
             <span>{notice}</span>
-            <button type="button" onClick={() => setNotice(null)}>Dismiss</button>
+            <button type="button" onClick={() => setNotice(null)}>{t('Dismiss')}</button>
           </div>
         </div>
       )}
       {page}
       {undoDeleteId && (
         <div className="undo-toast" role="status" aria-live="polite">
-          <span>Project moved to Trash.</span>
+          <span>{t('Project moved to Trash.')}</span>
           {undoSeconds > 0 && (
-            <button type="button" onClick={undoDelete}>Undo <strong>{undoSeconds}s</strong></button>
+            <button type="button" onClick={undoDelete}>{t('Undo')} <strong>{undoSeconds}s</strong></button>
           )}
         </div>
       )}
       <ConfirmDialog
         open={Boolean(deleteTargetId)}
-        title={deleteTargetId ? `Move “${projects.find((item) => item.id === deleteTargetId)?.title ?? 'this project'}” to Trash?` : ''}
-        description="The project will leave your active work, but you can restore it from Trash. Its saved video will stay there until you permanently delete the project."
-        confirmLabel="Move to Trash"
+        title={deleteTargetId ? t('Move “{title}” to Trash?', { title: projects.find((item) => item.id === deleteTargetId)?.title ?? 'this project' }) : ''}
+        description={t('The project will leave your active work, but you can restore it from Trash. Its saved video will stay there until you permanently delete the project.')}
+        confirmLabel={t('Move to Trash')}
         onConfirm={moveProjectToTrash}
         onCancel={() => setDeleteTargetId(null)}
       />
       <ConfirmDialog
         open={Boolean(permanentDeleteTargetId)}
-        title={permanentDeleteTargetId ? `Delete “${projects.find((item) => item.id === permanentDeleteTargetId)?.title ?? 'this project'}” forever?` : ''}
-        description="This permanently removes the project and its saved local video from this browser. There is no undo after this."
-        confirmLabel="Delete forever"
+        title={permanentDeleteTargetId ? t('Delete “{title}” forever?', { title: projects.find((item) => item.id === permanentDeleteTargetId)?.title ?? 'this project' }) : ''}
+        description={t('This permanently removes the project and its saved local video from this browser. There is no undo after this.')}
+        confirmLabel={t('Delete forever')}
         danger
         onConfirm={() => void permanentlyDeleteProject()}
         onCancel={() => setPermanentDeleteTargetId(null)}

@@ -5,13 +5,16 @@ export function formatTime(seconds: number) {
   return `${minutes}:${secs.toString().padStart(2, '0')}`
 }
 
-export function relativeDate(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime()
-  const minutes = Math.floor(diff / 60000)
-  if (minutes < 1) return 'just now'
-  if (minutes < 60) return `${minutes}m ago`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}h ago`
-  const days = Math.floor(hours / 24)
-  return `${days}d ago`
+export function relativeDate(iso: string, locale = 'en') {
+  const time = new Date(iso).getTime()
+  if (!Number.isFinite(time)) return ''
+  const diffSeconds = Math.round((time - Date.now()) / 1000)
+  const formatter = new Intl.RelativeTimeFormat(locale, { numeric: 'auto', style: 'short' })
+  if (Math.abs(diffSeconds) < 45) return formatter.format(0, 'second')
+  const diffMinutes = Math.round(diffSeconds / 60)
+  if (Math.abs(diffMinutes) < 60) return formatter.format(diffMinutes, 'minute')
+  const diffHours = Math.round(diffMinutes / 60)
+  if (Math.abs(diffHours) < 24) return formatter.format(diffHours, 'hour')
+  const diffDays = Math.round(diffHours / 24)
+  return formatter.format(diffDays, 'day')
 }

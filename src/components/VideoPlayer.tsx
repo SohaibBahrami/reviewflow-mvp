@@ -1,5 +1,6 @@
 import { forwardRef, useImperativeHandle, useRef, useState } from 'react'
 import { formatTime } from '../lib/format'
+import { useI18n } from '../lib/i18n'
 
 export interface VideoPlayerHandle {
   seek: (seconds: number) => void
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export const VideoPlayer = forwardRef<VideoPlayerHandle, Props>(function VideoPlayer({ src, onTimeChange }, ref) {
+  const { t } = useI18n()
   const wrapperRef = useRef<HTMLDivElement | null>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const [playing, setPlaying] = useState(false)
@@ -132,23 +134,23 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, Props>(function VideoPl
 
       {videoError && (
         <div className="video-load-error" role="alert">
-          <h3>We couldn't play this video.</h3>
-          <p>The video may be unavailable or the browser may have trouble decoding it. Try loading it again.</p>
-          <button type="button" className="button button-secondary" onClick={retryVideo}>Try again</button>
+          <h3>{t("We couldn't play this video.")}</h3>
+          <p>{t('The video may be unavailable or the browser may have trouble decoding it. Try loading it again.')}</p>
+          <button type="button" className="button button-secondary" onClick={retryVideo}>{t('Try again')}</button>
         </div>
       )}
 
-      <div className="video-controls" aria-label="Video controls">
-        <button type="button" className="video-control-button primary" onClick={togglePlayback} aria-label={playing ? 'Pause video' : 'Play video'}>
+      <div className="video-controls" aria-label={t('Video controls')}>
+        <button type="button" className="video-control-button primary" onClick={togglePlayback} aria-label={playing ? t('Pause video') : t('Play video')}>
           {playing ? '❚❚' : '▶'}
         </button>
-        <button type="button" className="video-control-button" onClick={() => seekBy(-5)} aria-label="Go back 5 seconds">
+        <button type="button" className="video-control-button" onClick={() => seekBy(-5)} aria-label={t('Go back 5 seconds')}>
           −5
         </button>
-        <button type="button" className="video-control-button" onClick={() => seekBy(5)} aria-label="Go forward 5 seconds">
+        <button type="button" className="video-control-button" onClick={() => seekBy(5)} aria-label={t('Go forward 5 seconds')}>
           +5
         </button>
-        <span className="video-time" aria-label={`Current playback time ${formatTime(currentTime)} of ${formatTime(duration)}`}>
+        <span className="video-time" aria-label={t('Current playback time {current} of {duration}', { current: formatTime(currentTime), duration: formatTime(duration) })}>
           {formatTime(currentTime)} / {formatTime(duration)}
         </span>
         <input
@@ -159,7 +161,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, Props>(function VideoPl
           step="0.01"
           value={Math.min(currentTime, duration || 0)}
           onChange={(event) => setProgress(Number(event.target.value))}
-          aria-label="Video progress"
+          aria-label={t('Video progress')}
           disabled={!duration}
         />
         <div className="video-volume-control">
@@ -167,8 +169,8 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, Props>(function VideoPl
             type="button"
             className="video-volume-button"
             onClick={toggleMute}
-            aria-label={volume === 0 ? 'Unmute video' : 'Mute video'}
-            title={volume === 0 ? 'Unmute' : 'Mute'}
+            aria-label={volume === 0 ? t('Unmute video') : t('Mute video')}
+            title={volume === 0 ? t('Unmute') : t('Mute')}
           >
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M4 9v6h4l5 4V5L8 9H4Z" fill="currentColor" />
@@ -185,11 +187,11 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, Props>(function VideoPl
             step="0.01"
             value={volume}
             onChange={(event) => setAudio(Number(event.target.value))}
-            aria-label="Volume"
-            aria-valuetext={volume === 0 ? 'Muted' : `${Math.round(volume * 100)} percent`}
+            aria-label={t('Volume')}
+            aria-valuetext={volume === 0 ? t('Muted') : `${Math.round(volume * 100)}%`}
           />
         </div>
-        <button type="button" className="video-control-button" onClick={toggleFullscreen} aria-label="Toggle fullscreen">
+        <button type="button" className="video-control-button" onClick={toggleFullscreen} aria-label={t('Toggle fullscreen')}>
           ⛶
         </button>
       </div>
