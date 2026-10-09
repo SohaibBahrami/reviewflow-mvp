@@ -26,3 +26,26 @@ export function getDashboardProjectGroups(projects) {
     completed: projects.filter((project) => project.status === 'completed'),
   }
 }
+
+
+export function startNextVersion(project, archivedAt = new Date().toISOString()) {
+  const previousStatus = project.status === 'trashed'
+    ? (project.statusBeforeTrash || 'in_review')
+    : project.status
+  const snapshot = {
+    version: project.version,
+    status: previousStatus,
+    archivedAt,
+    comments: Array.isArray(project.comments) ? [...project.comments] : [],
+  }
+  const versionHistory = Array.isArray(project.versionHistory) ? project.versionHistory : []
+
+  return {
+    ...project,
+    version: project.version + 1,
+    status: 'in_review',
+    completedAt: undefined,
+    comments: [],
+    versionHistory: [...versionHistory, snapshot],
+  }
+}

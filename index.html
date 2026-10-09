@@ -7,7 +7,7 @@
     <link rel="icon" type="image/svg+xml" href="/reviewflow-mark.svg" />
     <script>
       (() => {
-        const supportedLanguages = new Set(['en', 'fr', 'es', 'el', 'pt'])
+        const supportedLanguages = new Set(['en', 'fr', 'es', 'de', 'pt'])
         const languagePart = document.cookie.split(';').map((part) => part.trim()).find((part) => part.startsWith('reviewflow_locale='))
         let locale = 'en'
         if (languagePart) {

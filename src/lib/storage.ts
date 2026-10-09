@@ -10,6 +10,7 @@ const starterProject: Project = {
   version: 2,
   createdAt: new Date().toISOString(),
   shareToken: crypto.randomUUID(),
+  versionHistory: [],
   comments: [
     {
       id: 'comment-1',
@@ -47,6 +48,7 @@ export function loadProjects(): Project[] {
       status: project.status || 'in_review',
       statusBeforeTrash: project.statusBeforeTrash || undefined,
       trashedAt: project.trashedAt || undefined,
+      versionHistory: Array.isArray(project.versionHistory) ? project.versionHistory : [],
     })) as Project[]
   } catch (error) {
     console.error('ReviewFlow project storage could not be loaded.', error)

@@ -1,4 +1,4 @@
-export type Locale = 'en' | 'fr' | 'es' | 'el' | 'pt'
+export type Locale = 'en' | 'fr' | 'es' | 'de' | 'pt'
 export declare const LOCALE_OPTIONS: ReadonlyArray<{ code: Locale; label: string; nativeLabel: string }>
 export declare const COOKIE_NAMES: Readonly<{ locale: 'reviewflow_locale'; notice: 'reviewflow_cookie_notice' }>
 export declare const messages: Readonly<Record<Locale, Readonly<Record<string, string>>>>

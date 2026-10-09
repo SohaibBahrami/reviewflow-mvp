@@ -46,6 +46,7 @@ export function NewProject({ onCreate }: { onCreate: (project: Project) => void 
       shareToken: crypto.randomUUID(),
       localVideoId: videoId,
       comments: [],
+      versionHistory: [],
     }
     onCreate(project)
     setSaving(false)

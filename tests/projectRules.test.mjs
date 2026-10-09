@@ -7,6 +7,7 @@ import {
   countTrashedProjects,
   getDashboardProjectGroups,
   getProjectValidationError,
+  startNextVersion,
 } from '../src/lib/projectRulesCore.js'
 
 const project = (id, status = 'in_review') => ({ id, status })
@@ -58,4 +59,48 @@ test('trashed projects disappear from active work and completed projects stay ar
   const groups = getDashboardProjectGroups(projects)
   assert.deepEqual(groups.active.map((item) => item.id), ['active'])
   assert.deepEqual(groups.completed.map((item) => item.id), ['done'])
+})
+
+
+test('starting a version remains compatible with older projects without a history field', () => {
+  const oldProject = {
+    id: 'legacy-project',
+    version: 1,
+    status: 'in_review',
+    comments: [{ id: 'legacy-comment', timestamp: 8, text: 'Keep this note', status: 'open' }],
+  }
+  const next = startNextVersion(oldProject, '2026-10-09T12:00:00.000Z')
+  assert.deepEqual(next.versionHistory.map((version) => version.version), [1])
+  assert.equal(next.versionHistory[0].comments[0].id, 'legacy-comment')
+  assert.deepEqual(next.comments, [])
+})
+
+test('starting a new version archives prior feedback and keeps it separate from current feedback', () => {
+  const original = {
+    id: 'project-1',
+    version: 2,
+    status: 'approved',
+    completedAt: '2026-10-01T10:00:00.000Z',
+    comments: [
+      { id: 'c1', timestamp: 12, text: 'Shorten the intro', status: 'resolved' },
+      { id: 'c2', timestamp: 45, text: 'Lower music', status: 'open' },
+    ],
+    versionHistory: [{ version: 1, status: 'completed', archivedAt: '2026-09-01T10:00:00.000Z', comments: [] }],
+  }
+  const next = startNextVersion(original, '2026-10-09T12:00:00.000Z')
+
+  assert.equal(next.version, 3)
+  assert.equal(next.status, 'in_review')
+  assert.equal(next.completedAt, undefined)
+  assert.deepEqual(next.comments, [])
+  assert.equal(next.versionHistory.length, 2)
+  assert.equal(next.versionHistory[0].version, 1)
+  assert.equal(next.versionHistory[1].version, 2)
+  assert.equal(next.versionHistory[1].status, 'approved')
+  assert.equal(next.versionHistory[1].archivedAt, '2026-10-09T12:00:00.000Z')
+  assert.deepEqual(next.versionHistory[1].comments, original.comments)
+
+  next.comments.push({ id: 'c3', timestamp: 1, text: 'New version feedback' })
+  assert.equal(next.versionHistory[1].comments.length, 2, 'new feedback must not leak into the archived version')
+  assert.equal(original.version, 2, 'starting the next version must not mutate the source object')
 })

@@ -9,6 +9,13 @@ export interface ReviewComment {
   status: CommentStatus
 }
 
+export interface ProjectVersionSnapshot {
+  version: number
+  status: 'in_review' | 'approved' | 'completed'
+  archivedAt: string
+  comments: ReviewComment[]
+}
+
 export interface Project {
   id: string
   title: string
@@ -23,4 +30,5 @@ export interface Project {
   localVideoId?: string
   localVideoUrl?: string
   comments: ReviewComment[]
+  versionHistory: ProjectVersionSnapshot[]
 }
