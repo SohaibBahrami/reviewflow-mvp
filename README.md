@@ -79,3 +79,6 @@ The goal is to document what can realistically be built this way, including mist
 ## Development log
 
 See [`docs/BUILD_LOG.md`](docs/BUILD_LOG.md).
+
+
+Current cloud milestone: authenticated editor project metadata and feedback can sync through Supabase after the database setup is applied. Video files still live in the browser's IndexedDB; public client review links do not yet work across devices. See [Supabase setup](docs/SUPABASE_SETUP.md) for the current scope and limitations.
