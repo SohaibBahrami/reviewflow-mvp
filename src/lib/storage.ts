@@ -63,7 +63,7 @@ export function loadProjects(storageKey = STORAGE_KEY, useStarterProject = true)
     const raw = localStorage.getItem(storageKey)
     if (!raw) return useStarterProject ? [starterProject] : []
     const parsed = JSON.parse(raw) as Partial<Project>[]
-    if (!Array.isArray(parsed)) return [starterProject]
+    if (!Array.isArray(parsed)) return useStarterProject ? [starterProject] : []
     return parsed.map((project) => ({
       ...project,
       shareToken: project.shareToken || crypto.randomUUID(),
@@ -74,7 +74,7 @@ export function loadProjects(storageKey = STORAGE_KEY, useStarterProject = true)
     })) as Project[]
   } catch (error) {
     console.error('ReviewFlow project storage could not be loaded.', error)
-    return [starterProject]
+    return useStarterProject ? [starterProject] : []
   }
 }
 
