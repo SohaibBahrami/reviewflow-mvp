@@ -6,5 +6,6 @@ export {
   countTrashedProjects,
   getDashboardProjectGroups,
   getProjectValidationError,
+  getProjectVideoIds,
   startNextVersion,
 } from './projectRulesCore.js'

@@ -8,10 +8,10 @@ import { Shell } from './components/Shell'
 import { Trash } from './components/Trash'
 import { VideoReview } from './components/VideoReview'
 import { loadProjects, saveProjects } from './lib/storage'
-import { deleteLocalVideo, getLocalVideo } from './lib/videoStorage'
+import { deleteLocalVideos, getLocalVideo } from './lib/videoStorage'
 import { applyTheme, getTheme, toggleTheme, type Theme } from './lib/theme'
 import type { Project } from './lib/types'
-import { canMoveProjectToTrash, countTrashedProjects, MAX_TRASH_PROJECTS } from './lib/projectRules'
+import { canMoveProjectToTrash, countTrashedProjects, getProjectVideoIds, MAX_TRASH_PROJECTS } from './lib/projectRules'
 import { useI18n } from './lib/i18n'
 
 function getRoute() {
@@ -97,7 +97,7 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [deleteTargetId, permanentDeleteTargetId])
 
-  const videoUrlsRef = useRef<Record<string, string>>({})
+  const videoUrlsRef = useRef<Record<string, { videoId: string; url: string }>>({})
   const hydratedVideoIdsRef = useRef<Set<string>>(new Set())
 
   const project = useMemo(
@@ -123,39 +123,49 @@ export default function App() {
 
     if (!target?.localVideoId) return
 
-    const cachedUrl = videoUrlsRef.current[target.id]
-    if (cachedUrl) {
-      if (target.localVideoUrl !== cachedUrl) {
+    const videoId = target.localVideoId
+    const cachedVideo = videoUrlsRef.current[target.id]
+    if (cachedVideo?.videoId === videoId) {
+      if (target.localVideoUrl !== cachedVideo.url) {
         setProjects((current) => current.map((item) => (
-          item.id === target.id ? { ...item, localVideoUrl: cachedUrl } : item
+          item.id === target.id && item.localVideoId === videoId
+            ? { ...item, localVideoUrl: cachedVideo.url }
+            : item
         )))
       }
       return
     }
 
-    if (hydratedVideoIdsRef.current.has(target.localVideoId)) return
-    hydratedVideoIdsRef.current.add(target.localVideoId)
+    if (cachedVideo) {
+      URL.revokeObjectURL(cachedVideo.url)
+      delete videoUrlsRef.current[target.id]
+    }
+
+    if (hydratedVideoIdsRef.current.has(videoId)) return
+    hydratedVideoIdsRef.current.add(videoId)
 
     const hydrateActiveVideo = async () => {
       try {
-        const blob = await getLocalVideo(target.localVideoId!)
+        const blob = await getLocalVideo(videoId)
         if (cancelled) {
-          hydratedVideoIdsRef.current.delete(target.localVideoId!)
+          hydratedVideoIdsRef.current.delete(videoId)
           return
         }
         if (!blob) {
-          hydratedVideoIdsRef.current.delete(target.localVideoId!)
+          hydratedVideoIdsRef.current.delete(videoId)
           setNotice(t('A saved video could not be found. Try re-uploading the video in this project.'))
           return
         }
 
         const url = URL.createObjectURL(blob)
-        videoUrlsRef.current[target.id] = url
+        videoUrlsRef.current[target.id] = { videoId, url }
         setProjects((current) => current.map((item) => (
-          item.id === target.id ? { ...item, localVideoUrl: url } : item
+          item.id === target.id && item.localVideoId === videoId
+            ? { ...item, localVideoUrl: url }
+            : item
         )))
       } catch (error) {
-        hydratedVideoIdsRef.current.delete(target.localVideoId!)
+        hydratedVideoIdsRef.current.delete(videoId)
         console.error('ReviewFlow could not restore local video.', error)
         if (!cancelled) setNotice(t('A saved video could not be loaded. Try reopening the project or re-uploading the video.'))
       }
@@ -169,7 +179,7 @@ export default function App() {
   }, [activeVideoProject?.id, activeVideoProject?.localVideoId, activeVideoProject?.localVideoUrl])
 
   useEffect(() => () => {
-    Object.values(videoUrlsRef.current).forEach((url) => URL.revokeObjectURL(url))
+    Object.values(videoUrlsRef.current).forEach(({ url }) => URL.revokeObjectURL(url))
   }, [])
 
   function navigate(path: string) {
@@ -277,21 +287,19 @@ export default function App() {
       return
     }
 
-    if (target.localVideoId) {
-      try {
-        await deleteLocalVideo(target.localVideoId)
-      } catch (error) {
-        console.error('ReviewFlow could not permanently delete the local video.', error)
-        // Keep the trashed project visible so the user can retry. Removing its
-        // metadata here would orphan the video in IndexedDB.
-        setPermanentDeleteTargetId(null)
-        setNotice(t('The video could not be deleted from browser storage. The project is still in Trash; please try again.'))
-        return
-      }
+    try {
+      await deleteLocalVideos(getProjectVideoIds(target))
+    } catch (error) {
+      console.error('ReviewFlow could not permanently delete the project videos.', error)
+      // Keep the trashed project and all video metadata visible so the user can retry.
+      setPermanentDeleteTargetId(null)
+      setNotice(t('The video could not be deleted from browser storage. The project is still in Trash; please try again.'))
+      return
     }
 
-    if (videoUrlsRef.current[id]) {
-      URL.revokeObjectURL(videoUrlsRef.current[id])
+    const cachedVideo = videoUrlsRef.current[id]
+    if (cachedVideo) {
+      URL.revokeObjectURL(cachedVideo.url)
       delete videoUrlsRef.current[id]
     }
 
