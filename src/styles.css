@@ -478,3 +478,14 @@ input:focus, textarea:focus { border-color: #aaaef1; box-shadow: 0 0 0 4px rgba(
   margin: -14px 0 0;
   line-height: 1.5;
 }
+
+
+/* Remote Cloudflare Stream playback and cloud-upload status */
+.cloudflare-stream-player {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 0;
+  background: #0d0f14;
+}
+.remote-review-error { margin: 0 0 16px; }

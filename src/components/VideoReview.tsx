@@ -5,6 +5,8 @@ import { VideoPlayer, type VideoPlayerHandle } from './VideoPlayer'
 import { useI18n } from '../lib/i18n'
 import { startNextVersion } from '../lib/projectRules'
 import { getLocalVideo, saveLocalVideo } from '../lib/videoStorage'
+import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabase'
+import { uploadVideoToCloudflare } from '../lib/cloudVideoUpload'
 
 interface Props {
   project: Project
@@ -22,6 +24,9 @@ export function VideoReview({ project, onBack, onClientPreview, onUpdate, onDele
   const [currentTime, setCurrentTime] = useState(0)
   const [author, setAuthor] = useState('You')
   const [copied, setCopied] = useState(false)
+  const [cloudUploadProgress, setCloudUploadProgress] = useState<number | null>(null)
+  const [cloudUploadError, setCloudUploadError] = useState('')
+  const [cloudUploadMessage, setCloudUploadMessage] = useState('')
   const [showNewVersionForm, setShowNewVersionForm] = useState(false)
   const [newVersionFile, setNewVersionFile] = useState<File | null>(null)
   const [newVersionError, setNewVersionError] = useState('')
@@ -79,6 +84,33 @@ export function VideoReview({ project, onBack, onClientPreview, onUpdate, onDele
     setShowNewVersionForm(true)
     setNewVersionFile(null)
     setNewVersionError('')
+  }
+
+  async function uploadCurrentVideo() {
+    if (!project.localVideoId || cloudUploadProgress !== null || project.cloudVideoId) return
+    setCloudUploadError('')
+    setCloudUploadMessage('')
+    setCloudUploadProgress(0)
+    try {
+      const client = await getSupabaseClient()
+      if (!client) throw new Error('Supabase is not configured.')
+      const { data, error: sessionError } = await client.auth.getSession()
+      if (sessionError) throw sessionError
+      if (!data.session) throw new Error('Sign in before uploading a video.')
+      const blob = await getLocalVideo(project.localVideoId)
+      if (!blob) throw new Error('The saved local video could not be found.')
+      const file = new File([blob], project.localVideoName || 'reviewflow-video.mp4', { type: blob.type || 'video/mp4' })
+      const videoId = await uploadVideoToCloudflare(client, {
+        projectId: project.id, versionNumber: project.version, file, onProgress: setCloudUploadProgress,
+      })
+      onUpdate({ ...project, cloudVideoProvider: 'cloudflare', cloudVideoId: videoId })
+      setCloudUploadMessage(t('Video uploaded. Secure client links can now play it.'))
+    } catch (error) {
+      console.error('ReviewFlow could not upload the current video to Cloudflare Stream.', error)
+      setCloudUploadError(t('Video upload failed. Check your connection and try again.'))
+    } finally {
+      setCloudUploadProgress(null)
+    }
   }
 
   async function createVersion(event: FormEvent<HTMLFormElement>) {
@@ -173,6 +205,11 @@ export function VideoReview({ project, onBack, onClientPreview, onUpdate, onDele
         </div>
         <div className="review-actions">
           {!previewVersion && <button className="button button-secondary" onClick={onClientPreview}>{t('Preview as client')}</button>}
+          {!previewVersion && isSupabaseConfigured && project.localVideoId && !project.cloudVideoId && (
+            <button className="button button-secondary" type="button" onClick={() => void uploadCurrentVideo()} disabled={cloudUploadProgress !== null}>
+              {cloudUploadProgress !== null ? t('Uploading to secure video storage…') : t('Upload video to cloud')}
+            </button>
+          )}
           {!previewVersion && <button className="button button-primary" onClick={copyClientLink} disabled={!navigator.clipboard}>
             {copied ? t('Review link copied') : t('Copy review link') }
           </button>}
@@ -223,6 +260,10 @@ export function VideoReview({ project, onBack, onClientPreview, onUpdate, onDele
           </div>
         </form>
       )}
+
+      {cloudUploadProgress !== null && <p className="shared-review-note" role="status">{t('Uploading to secure video storage…')} {cloudUploadProgress}%</p>}
+      {cloudUploadError && <p className="form-error" role="alert">{cloudUploadError}</p>}
+      {cloudUploadMessage && <p className="form-success" role="status">{cloudUploadMessage}</p>}
 
       <div className="review-guide" aria-label={t('Review workflow')}>
         <div><strong>1</strong><span>{t('Review the video')}</span></div>
