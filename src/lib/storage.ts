@@ -131,3 +131,49 @@ export function saveCloudSyncBaseline(userId: string, baseline: Record<string, s
     }
   }
 }
+
+
+const CLOUD_DELETE_QUEUE_PREFIX = 'reviewflow-cloud-delete-queue-v1:'
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+export function loadPendingCloudDeletes(userId: string): string[] {
+  try {
+    const raw = localStorage.getItem(`${CLOUD_DELETE_QUEUE_PREFIX}${userId}`)
+    if (!raw) return []
+    const parsed: unknown = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+    return [...new Set(parsed.filter((id): id is string => typeof id === 'string' && UUID_PATTERN.test(id)))]
+  } catch (error) {
+    console.warn('ReviewFlow could not load pending cloud deletions.', error)
+    return []
+  }
+}
+
+export function addPendingCloudDelete(userId: string, projectId: string): StorageResult {
+  if (!UUID_PATTERN.test(projectId)) {
+    // Legacy IDs were never stored in the UUID-backed cloud database.
+    return { ok: true }
+  }
+
+  try {
+    const pending = new Set(loadPendingCloudDeletes(userId))
+    pending.add(projectId)
+    localStorage.setItem(`${CLOUD_DELETE_QUEUE_PREFIX}${userId}`, JSON.stringify([...pending]))
+    return { ok: true }
+  } catch (error) {
+    console.error('ReviewFlow could not queue a cloud project deletion.', error)
+    return { ok: false, message: 'ReviewFlow could not save the pending deletion. Please try again.' }
+  }
+}
+
+export function removePendingCloudDelete(userId: string, projectId: string): StorageResult {
+  try {
+    const pending = loadPendingCloudDeletes(userId).filter((id) => id !== projectId)
+    if (pending.length === 0) localStorage.removeItem(`${CLOUD_DELETE_QUEUE_PREFIX}${userId}`)
+    else localStorage.setItem(`${CLOUD_DELETE_QUEUE_PREFIX}${userId}`, JSON.stringify(pending))
+    return { ok: true }
+  } catch (error) {
+    console.error('ReviewFlow could not clear a synced project deletion.', error)
+    return { ok: false, message: 'ReviewFlow could not update the pending deletion list.' }
+  }
+}
