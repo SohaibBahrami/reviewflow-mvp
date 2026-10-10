@@ -7,7 +7,10 @@ import { NewProject } from './components/NewProject'
 import { Shell } from './components/Shell'
 import { Trash } from './components/Trash'
 import { VideoReview } from './components/VideoReview'
-import { loadProjects, saveProjects } from './lib/storage'
+import { addPendingCloudDelete, getLocalDataOwner, getUserProjectsStorageKey, loadCloudSyncBaseline, loadPendingCloudDeletes, loadProjects, removePendingCloudDelete, saveCloudSyncBaseline, saveProjects, setLocalDataOwner } from './lib/storage'
+import { getSupabaseClient } from './lib/supabase'
+import { deleteCloudProject, loadCloudProjects, saveCloudProject } from './lib/cloudProjectStore'
+import { cloudRowToProject, normalizeProjectForCloud, projectPayloadSignature, projectToCloudPayload } from './lib/cloudProjectCore.js'
 import { deleteLocalVideos, getLocalVideo } from './lib/videoStorage'
 import { applyTheme, getTheme, toggleTheme, type Theme } from './lib/theme'
 import type { Project } from './lib/types'
@@ -25,6 +28,13 @@ export default function App() {
   const { t } = useI18n()
   const [route, setRoute] = useState(getRoute)
   const [projects, setProjects] = useState<Project[]>(loadProjects)
+  const [cloudUserId, setCloudUserId] = useState<string | null>(null)
+  const [cloudDataOwnerId, setCloudDataOwnerId] = useState<string | null>(null)
+  const [cloudSyncReady, setCloudSyncReady] = useState(false)
+  const cloudSaveRevisionRef = useRef(0)
+  const cloudSaveQueueRef = useRef<Promise<void>>(Promise.resolve())
+  const lastCloudSignatureRef = useRef<string | null>(null)
+  const knownCloudProjectIdsRef = useRef<Set<string>>(new Set())
   const [theme, setTheme] = useState<Theme>(() => getTheme())
   const [notice, setNotice] = useState<string | null>(null)
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
@@ -45,9 +55,278 @@ export default function App() {
   }, [])
 
   useEffect(() => {
+    let mounted = true
+    let subscription: { unsubscribe: () => void } | null = null
+
+    void getSupabaseClient()
+      .then(async (client) => {
+        if (!mounted || !client) return
+        const { data, error } = await client.auth.getSession()
+        if (error) throw error
+        if (!mounted) return
+        setCloudUserId(data.session?.user.id ?? null)
+
+        const authState = client.auth.onAuthStateChange((_event, session) => {
+          if (mounted) setCloudUserId(session?.user.id ?? null)
+        })
+        subscription = authState.data.subscription
+      })
+      .catch((error) => {
+        console.error('ReviewFlow could not initialize cloud project sync.', error)
+        if (mounted) setNotice(t('We could not connect your account service. Check your connection and try again.'))
+      })
+
+    return () => {
+      mounted = false
+      subscription?.unsubscribe()
+    }
+  }, [t])
+
+  useEffect(() => {
+    let cancelled = false
+    const userId = cloudUserId
+
+    setCloudSyncReady(false)
+    lastCloudSignatureRef.current = null
+    knownCloudProjectIdsRef.current.clear()
+
+    if (!userId) {
+      setCloudDataOwnerId(null)
+      setProjects(loadProjects())
+      return () => { cancelled = true }
+    }
+
+    const storageKey = getUserProjectsStorageKey(userId)
+    const previousBaseline = loadCloudSyncBaseline(userId)
+    const pendingDeletesAtStart = new Set(loadPendingCloudDeletes(userId))
+    setCloudDataOwnerId(null)
+    setProjects(loadProjects(storageKey, false))
+    const accountCache = loadProjects(storageKey, false)
+    const previousLocalOwner = getLocalDataOwner()
+    // The shared local-only store is imported only on the first claim. Importing
+    // it again for the same account after each sign-in would duplicate legacy IDs.
+    const mayImportLegacyLocal = !previousLocalOwner
+    const legacyLocal = mayImportLegacyLocal ? loadProjects() : []
+
+    const candidatesById = new Map<string, Project>()
+    accountCache.forEach((project) => candidatesById.set(project.id, project))
+    legacyLocal.forEach((project) => {
+      if (!candidatesById.has(project.id)) candidatesById.set(project.id, project)
+    })
+    const candidateEntries = [...candidatesById.values()].map((original) => ({
+      original,
+      normalized: normalizeProjectForCloud(original),
+    }))
+    let localCandidates = candidateEntries.map(({ normalized }) => normalized)
+    let foundCloudConflict = false
+
+    const restoreLocalFallback = () => {
+      if (cancelled) return
+      setProjects(localCandidates)
+      setCloudDataOwnerId(userId)
+      setCloudSyncReady(false)
+      const result = saveProjects(localCandidates, storageKey)
+      if (!result.ok) setNotice(t('Your changes could not be saved.'))
+      else if (mayImportLegacyLocal) setLocalDataOwner(userId)
+    }
+
+    async function initializeCloudProjects() {
+      try {
+        const client = await getSupabaseClient()
+        if (!client) {
+          restoreLocalFallback()
+          return
+        }
+
+        const { data: sessionData, error: sessionError } = await client.auth.getSession()
+        if (sessionError) throw sessionError
+        if (sessionData.session?.user.id !== userId) return
+
+        // Finish explicit offline deletions before reading remote projects, so
+        // a retry can't re-import a project the editor permanently deleted.
+        for (const id of pendingDeletesAtStart) {
+          await deleteCloudProject(client, id)
+          removePendingCloudDelete(userId, id)
+        }
+
+        const remoteRows = await loadCloudProjects(client, userId)
+        const remoteById = new Map(remoteRows.map((row) => [row.id, row]))
+        const merged: Project[] = []
+        const migratedIds = new Set<string>()
+
+        for (const localProject of localCandidates) {
+          if (cancelled) return
+          if (pendingDeletesAtStart.has(localProject.id)) {
+            migratedIds.add(localProject.id)
+            continue
+          }
+          const remote = remoteById.get(localProject.id)
+          const baselineSignature = previousBaseline[localProject.id]
+          const localSignature = projectPayloadSignature(localProject)
+
+          if (remote) {
+            const remoteProject = cloudRowToProject(remote as unknown as Record<string, any>, localProject)
+            const remoteSignature = projectPayloadSignature(remoteProject)
+
+            if (baselineSignature && localSignature !== baselineSignature) {
+              if (remoteSignature !== baselineSignature && remoteSignature !== localSignature) {
+                foundCloudConflict = true
+              }
+              // A local edit made since the last successful sync wins, avoiding
+              // silent loss of work edited while offline.
+              await saveCloudProject(client, localProject)
+              merged.push(localProject)
+            } else {
+              // No known local edits: the remote project is the source of truth,
+              // while matching version-specific IndexedDB refs are kept locally.
+              merged.push(remoteProject)
+            }
+            migratedIds.add(localProject.id)
+          } else if (baselineSignature && localSignature === baselineSignature) {
+            // A project that was previously synced but disappeared remotely was
+            // deleted on another device. Do not resurrect an unchanged stale cache.
+            migratedIds.add(localProject.id)
+          } else {
+            if (baselineSignature && localSignature !== baselineSignature) foundCloudConflict = true
+            // New project, or a project edited locally after a remote deletion.
+            await saveCloudProject(client, localProject)
+            merged.push(localProject)
+            migratedIds.add(localProject.id)
+          }
+        }
+
+        for (const remote of remoteRows) {
+          if (!migratedIds.has(remote.id)) merged.push(cloudRowToProject(remote as unknown as Record<string, any>))
+        }
+
+        const currentRoute = getRoute()
+        const routeProject = candidateEntries.find(({ original }) => original.id === currentRoute.id)
+        if (currentRoute.id && routeProject && routeProject.original.id !== routeProject.normalized.id) {
+          const routeName = currentRoute.path === '/client' ? 'client' : 'review'
+          if (currentRoute.path === '/client' || currentRoute.path === '/review') {
+            window.location.hash = `#/${routeName}/${routeProject.normalized.id}`
+          }
+        }
+
+        if (cancelled) return
+        localCandidates = merged.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+        lastCloudSignatureRef.current = JSON.stringify(
+          [...localCandidates].sort((a, b) => a.id.localeCompare(b.id)).map(projectToCloudPayload),
+        )
+        knownCloudProjectIdsRef.current = new Set(localCandidates.map((project) => project.id))
+        const cacheResult = saveProjects(localCandidates, storageKey)
+        const baselineResult = saveCloudSyncBaseline(userId, Object.fromEntries(
+          localCandidates.map((project) => [project.id, projectPayloadSignature(project)]),
+        ))
+        if (cacheResult.ok && mayImportLegacyLocal) setLocalDataOwner(userId)
+        setProjects(localCandidates)
+        setCloudDataOwnerId(userId)
+        setCloudSyncReady(true)
+        if (!cacheResult.ok) setNotice(t('Your changes could not be saved.'))
+        if (foundCloudConflict) {
+          setNotice(t('There were changes on both devices. ReviewFlow kept your local changes and synced them to your account.'))
+        } else if (!baselineResult.ok) {
+          setNotice(t('Cloud sync history could not be saved in this browser.'))
+        }
+      } catch (error) {
+        console.error('ReviewFlow could not load or migrate cloud projects.', error)
+        restoreLocalFallback()
+        setNotice(t('We could not connect your account service. Check your connection and try again.'))
+      }
+    }
+
+    void initializeCloudProjects()
+    return () => { cancelled = true }
+  }, [cloudUserId])
+
+  useEffect(() => {
+    if (cloudUserId) {
+      if (cloudDataOwnerId !== cloudUserId) return
+      const result = saveProjects(projects, getUserProjectsStorageKey(cloudUserId))
+      if (!result.ok) setNotice(t('Your changes could not be saved.'))
+      return
+    }
+
+    // During sign-out, never copy the previous account's cloud projects into
+    // the browser's shared local-only cache.
+    if (cloudDataOwnerId !== null) return
     const result = saveProjects(projects)
     if (!result.ok) setNotice(t('Your changes could not be saved.'))
-  }, [projects, t])
+  }, [projects, cloudUserId, cloudDataOwnerId, t])
+
+  const cloudProjectSignature = useMemo(
+    () => JSON.stringify([...projects].sort((a, b) => a.id.localeCompare(b.id)).map(projectToCloudPayload)),
+    [projects],
+  )
+
+  useEffect(() => {
+    if (!cloudUserId || cloudDataOwnerId !== cloudUserId || !cloudSyncReady) return
+    if (cloudProjectSignature === lastCloudSignatureRef.current) return
+
+    const signature = cloudProjectSignature
+    const snapshot = projects.map((project) => normalizeProjectForCloud(project))
+    const nextBaseline = Object.fromEntries(
+      snapshot.map((project) => [project.id, projectPayloadSignature(project)]),
+    )
+    const timer = window.setTimeout(() => {
+      const revision = ++cloudSaveRevisionRef.current
+      cloudSaveQueueRef.current = cloudSaveQueueRef.current
+        .catch(() => undefined)
+        .then(async () => {
+          if (revision !== cloudSaveRevisionRef.current) return
+          const client = await getSupabaseClient()
+          if (!client) throw new Error('Supabase is not configured.')
+          const { data, error } = await client.auth.getSession()
+          if (error) throw error
+          if (data.session?.user.id !== cloudUserId) return
+
+          const previousBaseline = loadCloudSyncBaseline(cloudUserId)
+          const pendingDeletes = new Set(loadPendingCloudDeletes(cloudUserId))
+          const currentIds = new Set(snapshot.map((project) => project.id))
+          const previouslyKnownIds = new Set([
+            ...knownCloudProjectIdsRef.current,
+            ...pendingDeletes,
+          ])
+
+          // Propagate permanent local deletions and durable offline tombstones.
+          // The server function is idempotent, so retries after partial sync are safe.
+          for (const id of previouslyKnownIds) {
+            if (currentIds.has(id) && !pendingDeletes.has(id)) continue
+            if (revision !== cloudSaveRevisionRef.current) return
+            await deleteCloudProject(client, id)
+            knownCloudProjectIdsRef.current.delete(id)
+            if (pendingDeletes.has(id)) removePendingCloudDelete(cloudUserId, id)
+          }
+
+          for (const project of snapshot) {
+            if (revision !== cloudSaveRevisionRef.current) return
+            const projectSignature = nextBaseline[project.id]
+            if (
+              knownCloudProjectIdsRef.current.has(project.id)
+              && previousBaseline[project.id] === projectSignature
+            ) continue
+
+            await saveCloudProject(client, project)
+            // Track each successful write so a newer queued snapshot can undo
+            // a project added and removed while the previous sync was running.
+            knownCloudProjectIdsRef.current.add(project.id)
+          }
+
+          if (revision === cloudSaveRevisionRef.current) {
+            knownCloudProjectIdsRef.current = currentIds
+            const baselineResult = saveCloudSyncBaseline(cloudUserId, nextBaseline)
+            lastCloudSignatureRef.current = signature
+            if (!baselineResult.ok) setNotice(t('Cloud sync history could not be saved in this browser.'))
+          }
+        })
+        .catch((error) => {
+          console.error('ReviewFlow cloud project sync failed.', error)
+          if (revision === cloudSaveRevisionRef.current) setNotice(t('We could not connect your account service. Check your connection and try again.'))
+        })
+    }, 450)
+
+    return () => window.clearTimeout(timer)
+  }, [cloudProjectSignature, cloudUserId, cloudDataOwnerId, cloudSyncReady, projects, t])
 
   useEffect(() => {
     const onError = (event: ErrorEvent) => {
@@ -295,6 +574,15 @@ export default function App() {
       setPermanentDeleteTargetId(null)
       setNotice(t('The video could not be deleted from browser storage. The project is still in Trash; please try again.'))
       return
+    }
+
+    if (cloudUserId) {
+      const queued = addPendingCloudDelete(cloudUserId, id)
+      if (!queued.ok) {
+        setPermanentDeleteTargetId(null)
+        setNotice(t('The project could not be queued for cloud deletion. It remains in Trash; please try again.'))
+        return
+      }
     }
 
     const cachedVideo = videoUrlsRef.current[id]

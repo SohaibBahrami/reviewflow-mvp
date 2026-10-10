@@ -134,7 +134,7 @@ export function AuthView({ onDone }: { onDone: () => void }) {
           <p className="hero-copy">{session.user.email}</p>
           <div className="auth-setup-note">
             <strong>{t('Your account is connected.')}</strong>
-            <span>{t('Cloud project data will be connected to this account in the next migration step.')}</span>
+            <span>{t('After cloud database setup, project details, versions, and feedback sync to this account. Video files remain in this browser for now.')}</span>
           </div>
           {error && <p className="form-error" role="alert">{error}</p>}
           <div className="auth-actions">
@@ -151,7 +151,7 @@ export function AuthView({ onDone }: { onDone: () => void }) {
       <div className="auth-card">
         <p className="eyebrow">{t('ReviewFlow account')}</p>
         <h1>{mode === 'sign-in' ? t('Welcome back.') : t('Create your editor account.')}</h1>
-        <p className="hero-copy">{t('Your account will own your projects and control who can access them.')}</p>
+        <p className="hero-copy">{t('When cloud sync is configured, project details, versions, and feedback are saved to this account. Video files remain in this browser for now.')}</p>
 
         <form className="form-card auth-form" onSubmit={submit}>
           <label>

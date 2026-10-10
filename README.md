@@ -2,16 +2,12 @@
 
 ReviewFlow is a small client-approval tool for freelance video editors.
 
-The first milestone is intentionally local-first:
+ReviewFlow remains local-first by default. When Supabase is configured and its SQL schema is installed, signed-in editor accounts can sync project metadata, version history, comments, and approval/status. Video files remain in the browser's IndexedDB for now, so this milestone does not yet provide complete cross-device client review.
 
-1. Create a project.
-2. Optionally select a video file.
-3. Open a review screen.
-4. Leave timestamped comments.
-5. Resolve comments.
-6. Approve a version.
-
-Nothing is uploaded to a server yet. This is deliberate: we want to validate the workflow before paying for infrastructure or adding account complexity.
+1. Create a project and select its video.
+2. Review the video and leave timestamped comments.
+3. Resolve feedback and approve a version.
+4. Start a new version with a replacement video; earlier versions retain their own video reference and feedback.
 
 ## Stack
 
@@ -79,3 +75,6 @@ The goal is to document what can realistically be built this way, including mist
 ## Development log
 
 See [`docs/BUILD_LOG.md`](docs/BUILD_LOG.md).
+
+
+Current cloud milestone: authenticated editor project metadata and feedback can sync through Supabase after the database setup is applied. Video files still live in the browser's IndexedDB; public client review links do not yet work across devices. See [Supabase setup](docs/SUPABASE_SETUP.md) for the current scope and limitations.
