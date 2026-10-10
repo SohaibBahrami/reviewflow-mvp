@@ -445,3 +445,36 @@ input:focus, textarea:focus { border-color: #aaaef1; box-shadow: 0 0 0 4px rgba(
 .version-history-video-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 0 12px 12px; }
 .version-video-name { font-size: 12px; overflow-wrap: anywhere; }
 .history-preview-error { margin: 0 0 12px; }
+
+
+.password-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.password-input-wrap input {
+  min-width: 0;
+  flex: 1;
+}
+.password-toggle {
+  flex: 0 0 auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 9px 11px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+}
+.password-toggle:hover {
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
+.profile-form h2 {
+  font-size: 20px;
+}
+.profile-form .muted {
+  margin: -14px 0 0;
+  line-height: 1.5;
+}
