@@ -7,7 +7,10 @@ import { NewProject } from './components/NewProject'
 import { Shell } from './components/Shell'
 import { Trash } from './components/Trash'
 import { VideoReview } from './components/VideoReview'
-import { loadProjects, saveProjects } from './lib/storage'
+import { getLocalDataOwner, getUserProjectsStorageKey, loadProjects, saveProjects, setLocalDataOwner } from './lib/storage'
+import { getSupabaseClient } from './lib/supabase'
+import { loadCloudProjects, saveCloudProject } from './lib/cloudProjectStore'
+import { cloudRowToProject, normalizeProjectForCloud, projectToCloudPayload } from './lib/cloudProjectCore.js'
 import { deleteLocalVideos, getLocalVideo } from './lib/videoStorage'
 import { applyTheme, getTheme, toggleTheme, type Theme } from './lib/theme'
 import type { Project } from './lib/types'
@@ -25,6 +28,12 @@ export default function App() {
   const { t } = useI18n()
   const [route, setRoute] = useState(getRoute)
   const [projects, setProjects] = useState<Project[]>(loadProjects)
+  const [cloudUserId, setCloudUserId] = useState<string | null>(null)
+  const [cloudDataOwnerId, setCloudDataOwnerId] = useState<string | null>(null)
+  const [cloudSyncReady, setCloudSyncReady] = useState(false)
+  const cloudSaveRevisionRef = useRef(0)
+  const cloudSaveQueueRef = useRef<Promise<void>>(Promise.resolve())
+  const lastCloudSignatureRef = useRef<string | null>(null)
   const [theme, setTheme] = useState<Theme>(() => getTheme())
   const [notice, setNotice] = useState<string | null>(null)
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
@@ -45,9 +54,184 @@ export default function App() {
   }, [])
 
   useEffect(() => {
+    let mounted = true
+    let subscription: { unsubscribe: () => void } | null = null
+
+    void getSupabaseClient()
+      .then(async (client) => {
+        if (!mounted || !client) return
+        const { data, error } = await client.auth.getSession()
+        if (error) throw error
+        if (!mounted) return
+        setCloudUserId(data.session?.user.id ?? null)
+
+        const authState = client.auth.onAuthStateChange((_event, session) => {
+          if (mounted) setCloudUserId(session?.user.id ?? null)
+        })
+        subscription = authState.data.subscription
+      })
+      .catch((error) => {
+        console.error('ReviewFlow could not initialize cloud project sync.', error)
+        if (mounted) setNotice(t('We could not connect your account service. Check your connection and try again.'))
+      })
+
+    return () => {
+      mounted = false
+      subscription?.unsubscribe()
+    }
+  }, [t])
+
+  useEffect(() => {
+    let cancelled = false
+    const userId = cloudUserId
+
+    setCloudSyncReady(false)
+    lastCloudSignatureRef.current = null
+
+    if (!userId) {
+      setCloudDataOwnerId(null)
+      setProjects(loadProjects())
+      return () => { cancelled = true }
+    }
+
+    const storageKey = getUserProjectsStorageKey(userId)
+    const accountCache = loadProjects(storageKey, false)
+    const previousLocalOwner = getLocalDataOwner()
+    const mayImportLegacyLocal = !previousLocalOwner || previousLocalOwner === userId
+    const legacyLocal = mayImportLegacyLocal ? loadProjects() : []
+    if (mayImportLegacyLocal) setLocalDataOwner(userId)
+
+    const candidatesById = new Map<string, Project>()
+    accountCache.forEach((project) => candidatesById.set(project.id, project))
+    legacyLocal.forEach((project) => {
+      if (!candidatesById.has(project.id)) candidatesById.set(project.id, project)
+    })
+    let localCandidates = [...candidatesById.values()].map((project) => normalizeProjectForCloud(project))
+
+    const restoreLocalFallback = () => {
+      if (cancelled) return
+      setProjects(localCandidates)
+      setCloudDataOwnerId(userId)
+      setCloudSyncReady(false)
+      const result = saveProjects(localCandidates, storageKey)
+      if (!result.ok) setNotice(t('Your changes could not be saved.'))
+    }
+
+    async function initializeCloudProjects() {
+      try {
+        const client = await getSupabaseClient()
+        if (!client) {
+          restoreLocalFallback()
+          return
+        }
+
+        const { data: sessionData, error: sessionError } = await client.auth.getSession()
+        if (sessionError) throw sessionError
+        if (sessionData.session?.user.id !== userId) return
+
+        const remoteRows = await loadCloudProjects(client, userId)
+        const remoteById = new Map(remoteRows.map((row) => [row.id, row]))
+        const merged: Project[] = []
+        const migratedIds = new Set<string>()
+
+        for (const localProject of localCandidates) {
+          if (cancelled) return
+          const remote = remoteById.get(localProject.id)
+          if (remote) {
+            merged.push(cloudRowToProject(remote as unknown as Record<string, any>, localProject))
+            migratedIds.add(localProject.id)
+          } else {
+            await saveCloudProject(client, localProject)
+            merged.push(localProject)
+            migratedIds.add(localProject.id)
+          }
+        }
+
+        for (const remote of remoteRows) {
+          if (!migratedIds.has(remote.id)) merged.push(cloudRowToProject(remote as unknown as Record<string, any>))
+        }
+
+        const normalizedRouteProject = localCandidates.find((item) => item.id !== route.id && item.id)
+        const originalRouteProject = [...accountCache, ...legacyLocal].find((item) => item.id === route.id)
+        if (route.id && originalRouteProject && normalizedRouteProject && originalRouteProject.id !== normalizedRouteProject.id) {
+          const routeName = route.path === '/client' ? 'client' : 'review'
+          if (route.path === '/client' || route.path === '/review') {
+            window.location.hash = `#/${routeName}/${normalizedRouteProject.id}`
+          }
+        }
+
+        if (cancelled) return
+        localCandidates = merged.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+        lastCloudSignatureRef.current = JSON.stringify(
+          [...localCandidates].sort((a, b) => a.id.localeCompare(b.id)).map(projectToCloudPayload),
+        )
+        setProjects(localCandidates)
+        setCloudDataOwnerId(userId)
+        setCloudSyncReady(true)
+      } catch (error) {
+        console.error('ReviewFlow could not load or migrate cloud projects.', error)
+        restoreLocalFallback()
+        setNotice(t('We could not connect your account service. Check your connection and try again.'))
+      }
+    }
+
+    void initializeCloudProjects()
+    return () => { cancelled = true }
+  }, [cloudUserId])
+
+  useEffect(() => {
+    if (cloudUserId) {
+      if (cloudDataOwnerId !== cloudUserId) return
+      const result = saveProjects(projects, getUserProjectsStorageKey(cloudUserId))
+      if (!result.ok) setNotice(t('Your changes could not be saved.'))
+      return
+    }
+
+    // During sign-out, never copy the previous account's cloud projects into
+    // the browser's shared local-only cache.
+    if (cloudDataOwnerId !== null) return
     const result = saveProjects(projects)
     if (!result.ok) setNotice(t('Your changes could not be saved.'))
-  }, [projects, t])
+  }, [projects, cloudUserId, cloudDataOwnerId, t])
+
+  const cloudProjectSignature = useMemo(
+    () => JSON.stringify([...projects].sort((a, b) => a.id.localeCompare(b.id)).map(projectToCloudPayload)),
+    [projects],
+  )
+
+  useEffect(() => {
+    if (!cloudUserId || cloudDataOwnerId !== cloudUserId || !cloudSyncReady) return
+    if (cloudProjectSignature === lastCloudSignatureRef.current) return
+
+    const signature = cloudProjectSignature
+    const snapshot = projects.map((project) => normalizeProjectForCloud(project))
+    const timer = window.setTimeout(() => {
+      const revision = ++cloudSaveRevisionRef.current
+      cloudSaveQueueRef.current = cloudSaveQueueRef.current
+        .catch(() => undefined)
+        .then(async () => {
+          if (revision !== cloudSaveRevisionRef.current) return
+          const client = await getSupabaseClient()
+          if (!client) throw new Error('Supabase is not configured.')
+          const { data, error } = await client.auth.getSession()
+          if (error) throw error
+          if (data.session?.user.id !== cloudUserId) return
+
+          for (const project of snapshot) {
+            if (revision !== cloudSaveRevisionRef.current) return
+            await saveCloudProject(client, project)
+          }
+
+          if (revision === cloudSaveRevisionRef.current) lastCloudSignatureRef.current = signature
+        })
+        .catch((error) => {
+          console.error('ReviewFlow cloud project sync failed.', error)
+          if (revision === cloudSaveRevisionRef.current) setNotice(t('We could not connect your account service. Check your connection and try again.'))
+        })
+    }, 450)
+
+    return () => window.clearTimeout(timer)
+  }, [cloudProjectSignature, cloudUserId, cloudDataOwnerId, cloudSyncReady, projects, t])
 
   useEffect(() => {
     const onError = (event: ErrorEvent) => {
