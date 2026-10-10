@@ -52,15 +52,23 @@ export async function getLocalVideo(id: string): Promise<Blob | null> {
 }
 
 export async function deleteLocalVideo(id: string): Promise<void> {
+  return deleteLocalVideos([id])
+}
+
+export async function deleteLocalVideos(ids: readonly string[]): Promise<void> {
+  const uniqueIds = [...new Set(ids.filter((id) => typeof id === 'string' && id.length > 0))]
+  if (uniqueIds.length === 0) return
+
   const db = await openDatabase()
 
   try {
     await new Promise<void>((resolve, reject) => {
       const transaction = db.transaction(STORE_NAME, 'readwrite')
-      transaction.objectStore(STORE_NAME).delete(id)
+      const store = transaction.objectStore(STORE_NAME)
+      uniqueIds.forEach((id) => store.delete(id))
       transaction.oncomplete = () => resolve()
-      transaction.onerror = () => reject(transaction.error ?? new Error('Could not delete the video.'))
-      transaction.onabort = () => reject(transaction.error ?? new Error('Could not delete the video.'))
+      transaction.onerror = () => reject(transaction.error ?? new Error('Could not delete the videos.'))
+      transaction.onabort = () => reject(transaction.error ?? new Error('Could not delete the videos.'))
     })
   } finally {
     db.close()
