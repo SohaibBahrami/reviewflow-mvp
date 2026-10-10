@@ -572,6 +572,15 @@ export default function App() {
       return
     }
 
+    if (cloudUserId) {
+      const queued = addPendingCloudDelete(cloudUserId, id)
+      if (!queued.ok) {
+        setPermanentDeleteTargetId(null)
+        setNotice(t('The project could not be queued for cloud deletion. It remains in Trash; please try again.'))
+        return
+      }
+    }
+
     const cachedVideo = videoUrlsRef.current[id]
     if (cachedVideo) {
       URL.revokeObjectURL(cachedVideo.url)
