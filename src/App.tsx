@@ -7,7 +7,7 @@ import { NewProject } from './components/NewProject'
 import { Shell } from './components/Shell'
 import { Trash } from './components/Trash'
 import { VideoReview } from './components/VideoReview'
-import { getLocalDataOwner, getUserProjectsStorageKey, loadCloudSyncBaseline, loadProjects, saveCloudSyncBaseline, saveProjects, setLocalDataOwner } from './lib/storage'
+import { addPendingCloudDelete, getLocalDataOwner, getUserProjectsStorageKey, loadCloudSyncBaseline, loadPendingCloudDeletes, loadProjects, removePendingCloudDelete, saveCloudSyncBaseline, saveProjects, setLocalDataOwner } from './lib/storage'
 import { getSupabaseClient } from './lib/supabase'
 import { deleteCloudProject, loadCloudProjects, saveCloudProject } from './lib/cloudProjectStore'
 import { cloudRowToProject, normalizeProjectForCloud, projectPayloadSignature, projectToCloudPayload } from './lib/cloudProjectCore.js'
@@ -98,6 +98,7 @@ export default function App() {
 
     const storageKey = getUserProjectsStorageKey(userId)
     const previousBaseline = loadCloudSyncBaseline(userId)
+    const pendingDeletesAtStart = new Set(loadPendingCloudDeletes(userId))
     setCloudDataOwnerId(null)
     setProjects(loadProjects(storageKey, false))
     const accountCache = loadProjects(storageKey, false)
@@ -141,6 +142,13 @@ export default function App() {
         if (sessionError) throw sessionError
         if (sessionData.session?.user.id !== userId) return
 
+        // Finish explicit offline deletions before reading remote projects, so
+        // a retry can't re-import a project the editor permanently deleted.
+        for (const id of pendingDeletesAtStart) {
+          await deleteCloudProject(client, id)
+          removePendingCloudDelete(userId, id)
+        }
+
         const remoteRows = await loadCloudProjects(client, userId)
         const remoteById = new Map(remoteRows.map((row) => [row.id, row]))
         const merged: Project[] = []
@@ -148,6 +156,10 @@ export default function App() {
 
         for (const localProject of localCandidates) {
           if (cancelled) return
+          if (pendingDeletesAtStart.has(localProject.id)) {
+            migratedIds.add(localProject.id)
+            continue
+          }
           const remote = remoteById.get(localProject.id)
           const baselineSignature = previousBaseline[localProject.id]
           const localSignature = projectPayloadSignature(localProject)
@@ -184,15 +196,7 @@ export default function App() {
         }
 
         for (const remote of remoteRows) {
-          if (migratedIds.has(remote.id)) continue
-
-          if (previousBaseline[remote.id] && !candidatesById.has(remote.id)) {
-            // Locally deleted from this browser after its last sync; propagate the
-            // deletion instead of bringing the same project back from the cloud.
-            await deleteCloudProject(client, remote.id)
-            continue
-          }
-          merged.push(cloudRowToProject(remote as unknown as Record<string, any>))
+          if (!migratedIds.has(remote.id)) merged.push(cloudRowToProject(remote as unknown as Record<string, any>))
         }
 
         const routeProject = candidateEntries.find(({ original }) => original.id === route.id)
@@ -273,19 +277,21 @@ export default function App() {
           if (data.session?.user.id !== cloudUserId) return
 
           const previousBaseline = loadCloudSyncBaseline(cloudUserId)
+          const pendingDeletes = new Set(loadPendingCloudDeletes(cloudUserId))
           const currentIds = new Set(snapshot.map((project) => project.id))
           const previouslyKnownIds = new Set([
             ...knownCloudProjectIdsRef.current,
-            ...Object.keys(previousBaseline),
+            ...pendingDeletes,
           ])
 
-          // Propagate permanent local deletions as well as edits. The server
-          // function is idempotent, so a retry after a partial sync is safe.
+          // Propagate permanent local deletions and durable offline tombstones.
+          // The server function is idempotent, so retries after partial sync are safe.
           for (const id of previouslyKnownIds) {
-            if (currentIds.has(id)) continue
+            if (currentIds.has(id) && !pendingDeletes.has(id)) continue
             if (revision !== cloudSaveRevisionRef.current) return
             await deleteCloudProject(client, id)
             knownCloudProjectIdsRef.current.delete(id)
+            if (pendingDeletes.has(id)) removePendingCloudDelete(cloudUserId, id)
           }
 
           for (const project of snapshot) {
