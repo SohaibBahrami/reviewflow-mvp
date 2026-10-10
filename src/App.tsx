@@ -107,7 +107,6 @@ export default function App() {
     // it again for the same account after each sign-in would duplicate legacy IDs.
     const mayImportLegacyLocal = !previousLocalOwner
     const legacyLocal = mayImportLegacyLocal ? loadProjects() : []
-    if (mayImportLegacyLocal) setLocalDataOwner(userId)
 
     const candidatesById = new Map<string, Project>()
     accountCache.forEach((project) => candidatesById.set(project.id, project))
@@ -128,6 +127,7 @@ export default function App() {
       setCloudSyncReady(false)
       const result = saveProjects(localCandidates, storageKey)
       if (!result.ok) setNotice(t('Your changes could not be saved.'))
+      else if (mayImportLegacyLocal) setLocalDataOwner(userId)
     }
 
     async function initializeCloudProjects() {
@@ -213,12 +213,15 @@ export default function App() {
           [...localCandidates].sort((a, b) => a.id.localeCompare(b.id)).map(projectToCloudPayload),
         )
         knownCloudProjectIdsRef.current = new Set(localCandidates.map((project) => project.id))
+        const cacheResult = saveProjects(localCandidates, storageKey)
         const baselineResult = saveCloudSyncBaseline(userId, Object.fromEntries(
           localCandidates.map((project) => [project.id, projectPayloadSignature(project)]),
         ))
+        if (cacheResult.ok && mayImportLegacyLocal) setLocalDataOwner(userId)
         setProjects(localCandidates)
         setCloudDataOwnerId(userId)
         setCloudSyncReady(true)
+        if (!cacheResult.ok) setNotice(t('Your changes could not be saved.'))
         if (foundCloudConflict) {
           setNotice(t('There were changes on both devices. ReviewFlow kept your local changes and synced them to your account.'))
         } else if (!baselineResult.ok) {
