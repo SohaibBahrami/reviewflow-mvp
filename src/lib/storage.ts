@@ -1,6 +1,7 @@
 import type { Project } from './types'
 
 const STORAGE_KEY = 'reviewflow-projects-v1'
+const LOCAL_DATA_OWNER_KEY = 'reviewflow-local-data-owner'
 
 const starterProject: Project = {
   id: 'demo-project',
@@ -36,10 +37,30 @@ export type StorageResult = {
   message?: string
 }
 
-export function loadProjects(): Project[] {
+export function getUserProjectsStorageKey(userId: string): string {
+  return `${STORAGE_KEY}:user:${userId}`
+}
+
+export function getLocalDataOwner(): string | null {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return [starterProject]
+    return localStorage.getItem(LOCAL_DATA_OWNER_KEY)
+  } catch {
+    return null
+  }
+}
+
+export function setLocalDataOwner(userId: string): void {
+  try {
+    if (!getLocalDataOwner()) localStorage.setItem(LOCAL_DATA_OWNER_KEY, userId)
+  } catch (error) {
+    console.warn('ReviewFlow could not remember the local project owner.', error)
+  }
+}
+
+export function loadProjects(storageKey = STORAGE_KEY, useStarterProject = true): Project[] {
+  try {
+    const raw = localStorage.getItem(storageKey)
+    if (!raw) return useStarterProject ? [starterProject] : []
     const parsed = JSON.parse(raw) as Partial<Project>[]
     if (!Array.isArray(parsed)) return [starterProject]
     return parsed.map((project) => ({
@@ -56,12 +77,12 @@ export function loadProjects(): Project[] {
   }
 }
 
-export function saveProjects(projects: Project[]): StorageResult {
+export function saveProjects(projects: Project[], storageKey = STORAGE_KEY): StorageResult {
   try {
     // Object URLs are temporary browser-session references and cannot survive a reload.
     // Keep project metadata persistent without pretending the local video itself was saved here.
     const persistable = projects.map(({ localVideoUrl: _localVideoUrl, ...project }) => project)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(persistable))
+    localStorage.setItem(storageKey, JSON.stringify(persistable))
     return { ok: true }
   } catch (error) {
     console.error('ReviewFlow project storage could not be saved.', error)
