@@ -29,14 +29,20 @@ function versionStatus(projectStatus, statusBeforeTrash) {
   return ['in_review', 'approved', 'completed'].includes(projectStatus) ? projectStatus : 'in_review'
 }
 
+function isoTimestamp(value) {
+  if (!value) return null
+  const timestamp = new Date(value)
+  return Number.isNaN(timestamp.getTime()) ? null : timestamp.toISOString()
+}
+
 function toCloudComment(comment) {
   return {
     id: isUuid(comment.id) ? comment.id : undefined,
-    timestamp_seconds: Math.max(0, Number(comment.timestamp) || 0),
+    timestamp_seconds: Math.round(Math.max(0, Number(comment.timestamp) || 0) * 1000) / 1000,
     body: String(comment.text ?? '').trim(),
     author_name: String(comment.author ?? '').trim() || 'You',
     status: comment.status === 'resolved' ? 'resolved' : 'open',
-    created_at: comment.createdAt,
+    created_at: isoTimestamp(comment.createdAt),
   }
 }
 
@@ -47,8 +53,10 @@ function toCloudVersion(version, number, status, createdAt, comments) {
     video_provider: version?.cloudVideoProvider || null,
     video_asset_id: version?.cloudVideoId || null,
     created_at: createdAt,
-    approved_at: status === 'approved' ? (version?.approvedAt || null) : null,
-    comments: comments.map(toCloudComment).filter((comment) => comment.body.length > 0),
+    approved_at: status === 'approved' ? isoTimestamp(version?.approvedAt) : null,
+    comments: comments.map(toCloudComment)
+      .filter((comment) => comment.body.length > 0)
+      .sort((a, b) => String(a.id ?? '').localeCompare(String(b.id ?? ''))),
   }
 }
 
@@ -78,9 +86,9 @@ export function projectToCloudPayload(project) {
     current_version: project.version,
     share_token: project.shareToken,
     status_before_trash: project.status === 'trashed' ? (project.statusBeforeTrash || 'in_review') : null,
-    created_at: project.createdAt,
-    completed_at: project.completedAt || null,
-    trashed_at: project.trashedAt || null,
+    created_at: isoTimestamp(project.createdAt),
+    completed_at: isoTimestamp(project.completedAt),
+    trashed_at: isoTimestamp(project.trashedAt),
     versions: history.sort((a, b) => a.version_number - b.version_number),
   }
 }
