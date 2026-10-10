@@ -133,4 +133,5 @@ end;
 $$;
 
 revoke all on function public.sync_reviewflow_project(jsonb) from public;
+grant select, insert, update, delete on public.projects, public.project_versions, public.review_comments to authenticated;
 grant execute on function public.sync_reviewflow_project(jsonb) to authenticated;
