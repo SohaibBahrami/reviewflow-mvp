@@ -151,7 +151,7 @@ export function AuthView({ onDone }: { onDone: () => void }) {
       <div className="auth-card">
         <p className="eyebrow">{t('ReviewFlow account')}</p>
         <h1>{mode === 'sign-in' ? t('Welcome back.') : t('Create your editor account.')}</h1>
-        <p className="hero-copy">{t('Your account will own your projects and control who can access them.')}</p>
+        <p className="hero-copy">{t('When cloud sync is configured, project details, versions, and feedback are saved to this account. Video files remain in this browser for now.')}</p>
 
         <form className="form-card auth-form" onSubmit={submit}>
           <label>
