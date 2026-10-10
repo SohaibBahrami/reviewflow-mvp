@@ -45,7 +45,7 @@ export function NewProject({ onCreate }: { onCreate: (project: Project) => void 
       createdAt: new Date().toISOString(),
       shareToken: crypto.randomUUID(),
       localVideoId: videoId,
-      localVideoName: file.name,
+      localVideoName: file?.name,
       comments: [],
       versionHistory: [],
     }
