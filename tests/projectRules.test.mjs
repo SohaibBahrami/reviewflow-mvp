@@ -131,7 +131,7 @@ test('new-version UI requires a replacement file and supports previewing archive
   const videoReview = readFileSync(new URL('../src/components/VideoReview.tsx', import.meta.url), 'utf8')
   const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8')
   assert.match(videoReview, /saveLocalVideo\(/)
-  assert.match(videoReview, /startNextVersion\(project,\s*\{\s*localVideoId:/)
+  assert.match(videoReview, /startNextVersion\(project,\s*\{\s*localVideoId\s*[,}:]/)
   assert.match(videoReview, /getLocalVideo\(/)
   assert.match(videoReview, /Return to current version/)
   assert.match(app, /deleteLocalVideos\(getProjectVideoIds\(target\)\)/)
