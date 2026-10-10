@@ -257,6 +257,9 @@ export default function App() {
 
     const signature = cloudProjectSignature
     const snapshot = projects.map((project) => normalizeProjectForCloud(project))
+    const nextBaseline = Object.fromEntries(
+      snapshot.map((project) => [project.id, projectPayloadSignature(project)]),
+    )
     const timer = window.setTimeout(() => {
       const revision = ++cloudSaveRevisionRef.current
       cloudSaveQueueRef.current = cloudSaveQueueRef.current
@@ -269,12 +272,42 @@ export default function App() {
           if (error) throw error
           if (data.session?.user.id !== cloudUserId) return
 
-          for (const project of snapshot) {
+          const previousBaseline = loadCloudSyncBaseline(cloudUserId)
+          const currentIds = new Set(snapshot.map((project) => project.id))
+          const previouslyKnownIds = new Set([
+            ...knownCloudProjectIdsRef.current,
+            ...Object.keys(previousBaseline),
+          ])
+
+          // Propagate permanent local deletions as well as edits. The server
+          // function is idempotent, so a retry after a partial sync is safe.
+          for (const id of previouslyKnownIds) {
+            if (currentIds.has(id)) continue
             if (revision !== cloudSaveRevisionRef.current) return
-            await saveCloudProject(client, project)
+            await deleteCloudProject(client, id)
+            knownCloudProjectIdsRef.current.delete(id)
           }
 
-          if (revision === cloudSaveRevisionRef.current) lastCloudSignatureRef.current = signature
+          for (const project of snapshot) {
+            if (revision !== cloudSaveRevisionRef.current) return
+            const projectSignature = nextBaseline[project.id]
+            if (
+              knownCloudProjectIdsRef.current.has(project.id)
+              && previousBaseline[project.id] === projectSignature
+            ) continue
+
+            await saveCloudProject(client, project)
+            // Track each successful write so a newer queued snapshot can undo
+            // a project added and removed while the previous sync was running.
+            knownCloudProjectIdsRef.current.add(project.id)
+          }
+
+          if (revision === cloudSaveRevisionRef.current) {
+            knownCloudProjectIdsRef.current = currentIds
+            const baselineResult = saveCloudSyncBaseline(cloudUserId, nextBaseline)
+            lastCloudSignatureRef.current = signature
+            if (!baselineResult.ok) setNotice(t('Cloud sync history could not be saved in this browser.'))
+          }
         })
         .catch((error) => {
           console.error('ReviewFlow cloud project sync failed.', error)
