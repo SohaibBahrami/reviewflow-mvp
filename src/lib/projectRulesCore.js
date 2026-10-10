@@ -28,7 +28,11 @@ export function getDashboardProjectGroups(projects) {
 }
 
 
-export function startNextVersion(project, archivedAt = new Date().toISOString()) {
+export function startNextVersion(project, replacementVideo, archivedAt = new Date().toISOString()) {
+  if (!replacementVideo?.localVideoId || !replacementVideo?.localVideoName) {
+    throw new Error('A replacement video is required to start a new version.')
+  }
+
   const previousStatus = project.status === 'trashed'
     ? (project.statusBeforeTrash || 'in_review')
     : project.status
@@ -36,6 +40,8 @@ export function startNextVersion(project, archivedAt = new Date().toISOString())
     version: project.version,
     status: previousStatus,
     archivedAt,
+    localVideoId: project.localVideoId,
+    localVideoName: project.localVideoName,
     comments: Array.isArray(project.comments) ? [...project.comments] : [],
   }
   const versionHistory = Array.isArray(project.versionHistory) ? project.versionHistory : []
@@ -45,7 +51,20 @@ export function startNextVersion(project, archivedAt = new Date().toISOString())
     version: project.version + 1,
     status: 'in_review',
     completedAt: undefined,
+    localVideoId: replacementVideo.localVideoId,
+    localVideoName: replacementVideo.localVideoName,
+    localVideoUrl: undefined,
     comments: [],
     versionHistory: [...versionHistory, snapshot],
   }
+}
+
+export function getProjectVideoIds(project) {
+  const ids = []
+  if (typeof project?.localVideoId === 'string' && project.localVideoId) ids.push(project.localVideoId)
+  const history = Array.isArray(project?.versionHistory) ? project.versionHistory : []
+  for (const version of history) {
+    if (typeof version?.localVideoId === 'string' && version.localVideoId) ids.push(version.localVideoId)
+  }
+  return [...new Set(ids)]
 }
