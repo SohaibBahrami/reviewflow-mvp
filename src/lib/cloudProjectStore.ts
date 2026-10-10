@@ -51,3 +51,11 @@ export async function saveCloudProject(client: SupabaseClient, project: Project)
 
   if (error) throw error
 }
+
+export async function deleteCloudProject(client: SupabaseClient, projectId: string): Promise<void> {
+  const { error } = await client.rpc('delete_reviewflow_project', {
+    target_project_id: projectId,
+  })
+
+  if (error) throw error
+}
