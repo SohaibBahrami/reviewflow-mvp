@@ -106,7 +106,11 @@ export default function App() {
     legacyLocal.forEach((project) => {
       if (!candidatesById.has(project.id)) candidatesById.set(project.id, project)
     })
-    let localCandidates = [...candidatesById.values()].map((project) => normalizeProjectForCloud(project))
+    const candidateEntries = [...candidatesById.values()].map((original) => ({
+      original,
+      normalized: normalizeProjectForCloud(original),
+    }))
+    let localCandidates = candidateEntries.map(({ normalized }) => normalized)
 
     const restoreLocalFallback = () => {
       if (cancelled) return
@@ -151,12 +155,11 @@ export default function App() {
           if (!migratedIds.has(remote.id)) merged.push(cloudRowToProject(remote as unknown as Record<string, any>))
         }
 
-        const normalizedRouteProject = localCandidates.find((item) => item.id !== route.id && item.id)
-        const originalRouteProject = [...accountCache, ...legacyLocal].find((item) => item.id === route.id)
-        if (route.id && originalRouteProject && normalizedRouteProject && originalRouteProject.id !== normalizedRouteProject.id) {
+        const routeProject = candidateEntries.find(({ original }) => original.id === route.id)
+        if (route.id && routeProject && routeProject.original.id !== routeProject.normalized.id) {
           const routeName = route.path === '/client' ? 'client' : 'review'
           if (route.path === '/client' || route.path === '/review') {
-            window.location.hash = `#/${routeName}/${normalizedRouteProject.id}`
+            window.location.hash = `#/${routeName}/${routeProject.normalized.id}`
           }
         }
 
