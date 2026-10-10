@@ -172,14 +172,14 @@ export function VideoReview({ project, onBack, onClientPreview, onUpdate, onDele
           <p className="hero-copy">{t('Client: {client}', { client: project.client })} · {t('Version {version}', { version: displayedVersionNumber })}</p>
         </div>
         <div className="review-actions">
-          <button className="button button-secondary" onClick={onClientPreview}>{t('Preview as client')}</button>
-          <button className="button button-primary" onClick={copyClientLink} disabled={!navigator.clipboard}>
+          {!previewVersion && <button className="button button-secondary" onClick={onClientPreview}>{t('Preview as client')}</button>}
+          {!previewVersion && <button className="button button-primary" onClick={copyClientLink} disabled={!navigator.clipboard}>
             {copied ? t('Review link copied') : t('Copy review link') }
-          </button>
+          </button>}
           {!previewVersion && <button className="button button-secondary" onClick={openNewVersionForm}>{t('Start next version')}</button>}
-          <button className={project.status === 'completed' ? 'button button-secondary' : 'button button-secondary'} onClick={onToggleComplete}>
+          {!previewVersion && <button className="button button-secondary" onClick={onToggleComplete}>
             {project.status === 'completed' ? t('Reopen project') : t('Mark project complete')}
-          </button>
+          </button>}
           <button className="button button-danger" onClick={onDelete}>{t('Delete project')}</button>
         </div>
       </div>
@@ -256,6 +256,9 @@ export function VideoReview({ project, onBack, onClientPreview, onUpdate, onDele
 
       <div className="review-layout">
         <div className="video-panel">
+          {(previewVersion?.localVideoName || project.localVideoName) && (
+            <p className="muted version-video-name">{previewVersion?.localVideoName ?? project.localVideoName}</p>
+          )}
           {displayedVideoUrl ? (
             <VideoPlayer key={displayedVideoId ?? 'current-video'} ref={videoRef} src={displayedVideoUrl} onTimeChange={setCurrentTime} />
           ) : (
