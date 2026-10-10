@@ -437,3 +437,11 @@ input:focus, textarea:focus { border-color: #aaaef1; box-shadow: 0 0 0 4px rgba(
   .cookie-banner-actions { justify-content: flex-end; flex-wrap: wrap; }
   .cookie-settings-panel { padding: 20px; }
 }
+
+
+.version-upload-form { margin: 0 0 18px; }
+.version-upload-form .hero-copy { margin: 0 0 14px; }
+.version-upload-form .form-actions { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+.version-history-video-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 0 12px 12px; }
+.version-video-name { font-size: 12px; overflow-wrap: anywhere; }
+.history-preview-error { margin: 0 0 12px; }
