@@ -199,10 +199,11 @@ export default function App() {
           if (!migratedIds.has(remote.id)) merged.push(cloudRowToProject(remote as unknown as Record<string, any>))
         }
 
-        const routeProject = candidateEntries.find(({ original }) => original.id === route.id)
-        if (route.id && routeProject && routeProject.original.id !== routeProject.normalized.id) {
-          const routeName = route.path === '/client' ? 'client' : 'review'
-          if (route.path === '/client' || route.path === '/review') {
+        const currentRoute = getRoute()
+        const routeProject = candidateEntries.find(({ original }) => original.id === currentRoute.id)
+        if (currentRoute.id && routeProject && routeProject.original.id !== routeProject.normalized.id) {
+          const routeName = currentRoute.path === '/client' ? 'client' : 'review'
+          if (currentRoute.path === '/client' || currentRoute.path === '/review') {
             window.location.hash = `#/${routeName}/${routeProject.normalized.id}`
           }
         }
