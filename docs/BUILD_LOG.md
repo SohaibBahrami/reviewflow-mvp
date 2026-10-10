@@ -372,5 +372,7 @@ These are roadmap recommendations, not claims that every competitor feature is i
 - Browser-local video IDs and object URLs are never sent to Supabase. Per-account local caches preserve that browser's IndexedDB references without mixing different signed-in users' caches.
 - Added an atomic `sync_reviewflow_project(jsonb)` function, executable by authenticated users only. It uses the caller's identity and relies on the existing owner-only Row Level Security policies; no service-role key is placed in the browser.
 - The Supabase schema supports completed historical versions. Existing deployments can apply `supabase/migrations/20261010000000_cloud_project_sync.sql`; fresh setups can run the updated `supabase/schema.sql`.
+- If local and cloud project metadata both change since the last successful sync, the app keeps the local snapshot and displays a notice instead of silently discarding edits. This is whole-project last-writer handling, not field-level conflict resolution or real-time collaboration.
+- Permanent deletions are queued per account until Supabase confirms them, so an offline deletion is not silently resurrected the next time projects load.
 - **Still not implemented:** cloud video uploads/playback and anonymous cross-device client review links. These remain the next part of the cloud workflow.
 - No runtime dependency was added.
