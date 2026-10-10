@@ -1,6 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Project } from './types'
-import { cloudRowToProject, projectToCloudPayload } from './cloudProjectCore.js'
+import { projectToCloudPayload } from './cloudProjectCore.js'
+
+export type CloudProjectRow = Record<string, any> & { id: string }
 
 const PROJECT_SELECT = `
   id,
@@ -31,7 +33,7 @@ const PROJECT_SELECT = `
   )
 `
 
-export async function loadCloudProjects(client: SupabaseClient, ownerId: string): Promise<Project[]> {
+export async function loadCloudProjects(client: SupabaseClient, ownerId: string): Promise<CloudProjectRow[]> {
   const { data, error } = await client
     .from('projects')
     .select(PROJECT_SELECT)
@@ -39,7 +41,7 @@ export async function loadCloudProjects(client: SupabaseClient, ownerId: string)
     .order('created_at', { ascending: false })
 
   if (error) throw error
-  return (data ?? []).map((row) => cloudRowToProject(row as Record<string, any>))
+  return (data ?? []) as unknown as CloudProjectRow[]
 }
 
 export async function saveCloudProject(client: SupabaseClient, project: Project): Promise<void> {
