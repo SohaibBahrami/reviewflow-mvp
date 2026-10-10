@@ -2,6 +2,7 @@ import type { Project } from './types'
 
 const STORAGE_KEY = 'reviewflow-projects-v1'
 const LOCAL_DATA_OWNER_KEY = 'reviewflow-local-data-owner'
+const CLOUD_BASELINE_PREFIX = 'reviewflow-cloud-baseline-v1:'
 
 const starterProject: Project = {
   id: 'demo-project',
@@ -100,5 +101,33 @@ export function resetProjects(): StorageResult {
   } catch (error) {
     console.error('ReviewFlow project storage could not be reset.', error)
     return { ok: false, message: 'ReviewFlow could not reset local project data.' }
+  }
+}
+
+export function loadCloudSyncBaseline(userId: string): Record<string, string> {
+  try {
+    const raw = localStorage.getItem(`${CLOUD_BASELINE_PREFIX}${userId}`)
+    if (!raw) return {}
+    const parsed: unknown = JSON.parse(raw)
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {}
+    return Object.fromEntries(
+      Object.entries(parsed).filter((entry): entry is [string, string] => typeof entry[1] === 'string'),
+    )
+  } catch (error) {
+    console.warn('ReviewFlow could not load the cloud sync baseline.', error)
+    return {}
+  }
+}
+
+export function saveCloudSyncBaseline(userId: string, baseline: Record<string, string>): StorageResult {
+  try {
+    localStorage.setItem(`${CLOUD_BASELINE_PREFIX}${userId}`, JSON.stringify(baseline))
+    return { ok: true }
+  } catch (error) {
+    console.error('ReviewFlow could not save the cloud sync baseline.', error)
+    return {
+      ok: false,
+      message: 'Cloud sync history could not be saved in this browser.',
+    }
   }
 }
