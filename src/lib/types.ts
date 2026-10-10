@@ -13,6 +13,8 @@ export interface ProjectVersionSnapshot {
   version: number
   status: 'in_review' | 'approved' | 'completed'
   archivedAt: string
+  cloudVideoProvider?: string
+  cloudVideoId?: string
   localVideoId?: string
   localVideoName?: string
   comments: ReviewComment[]
@@ -29,6 +31,8 @@ export interface Project {
   version: number
   createdAt: string
   shareToken: string
+  cloudVideoProvider?: string
+  cloudVideoId?: string
   localVideoId?: string
   localVideoName?: string
   localVideoUrl?: string
