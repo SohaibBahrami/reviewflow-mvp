@@ -234,7 +234,6 @@ Passwords do not match.	Les mots de passe ne correspondent pas.	Las contraseñas
 Re-enter your password	Saisissez à nouveau votre mot de passe	Vuelve a introducir tu contraseña	Gib dein Passwort erneut ein	Introduza novamente a sua palavra-passe
 Save name	Enregistrer le nom	Guardar nombre	Namen speichern	Guardar nome
 Saving…	Enregistrement…	Guardando…	Wird gespeichert…	A guardar…
-Show	Afficher	Mostrar	Anzeigen	Mostrar
 Show password	Afficher le mot de passe	Mostrar contraseña	Passwort anzeigen	Mostrar palavra-passe
 This is the name associated with your creator account.	C’est le nom associé à votre compte de créateur.	Este es el nombre asociado a tu cuenta de creador.	Dies ist der Name deines Creator-Kontos.	Este é o nome associado à sua conta de criador.
 We could not save your name. Check your connection and try again.	Impossible d’enregistrer votre nom. Vérifiez votre connexion et réessayez.	No se pudo guardar tu nombre. Comprueba la conexión e inténtalo de nuevo.	Dein Name konnte nicht gespeichert werden. Prüfe deine Verbindung und versuche es erneut.	Não foi possível guardar o seu nome. Verifique a ligação e tente novamente.
