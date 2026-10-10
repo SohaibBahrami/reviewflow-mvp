@@ -222,6 +222,22 @@ Preview video	Prévisualiser la vidéo	Vista previa del vídeo	Video ansehen	Pr�
 Return to current version	Revenir à la version actuelle	Volver a la versión actual	Zur aktuellen Version zurückkehren	Voltar à versão atual
 Version {version} feedback	Commentaires de la version {version}	Comentarios de la versión {version}	Feedback zu Version {version}	Feedback da versão {version}
 You are viewing an archived version. Feedback is read-only.	Vous consultez une version archivée. Les commentaires sont en lecture seule.	Estás viendo una versión archivada. Los comentarios son de solo lectura.	Du siehst eine archivierte Version. Das Feedback ist schreibgeschützt.	Está a ver uma versão arquivada. O feedback é só de leitura.
+Add your creator name.	Ajoutez votre nom de créateur.	Añade tu nombre de creador.	Füge deinen Creator-Namen hinzu.	Adicione o seu nome de criador.
+Confirm password	Confirmer le mot de passe	Confirmar contraseña	Passwort bestätigen	Confirmar palavra-passe
+Creator profile	Profil du créateur	Perfil del creador	Creator-Profil	Perfil do criador
+Enter your name	Saisissez votre nom	Introduce tu nombre	Gib deinen Namen ein	Introduza o seu nome
+Enter your name to create an account.	Saisissez votre nom pour créer un compte.	Introduce tu nombre para crear una cuenta.	Gib deinen Namen ein, um ein Konto zu erstellen.	Introduza o seu nome para criar uma conta.
+Enter your name to save your profile.	Saisissez votre nom pour enregistrer votre profil.	Introduce tu nombre para guardar tu perfil.	Gib deinen Namen ein, um dein Profil zu speichern.	Introduza o seu nome para guardar o perfil.
+Hide	Masquer	Ocultar	Ausblenden	Ocultar
+Hide password	Masquer le mot de passe	Ocultar contraseña	Passwort ausblenden	Ocultar palavra-passe
+Passwords do not match.	Les mots de passe ne correspondent pas.	Las contraseñas no coinciden.	Die Passwörter stimmen nicht überein.	As palavras-passe não coincidem.
+Re-enter your password	Saisissez à nouveau votre mot de passe	Vuelve a introducir tu contraseña	Gib dein Passwort erneut ein	Introduza novamente a sua palavra-passe
+Save name	Enregistrer le nom	Guardar nombre	Namen speichern	Guardar nome
+Saving…	Enregistrement…	Guardando…	Wird gespeichert…	A guardar…
+Show password	Afficher le mot de passe	Mostrar contraseña	Passwort anzeigen	Mostrar palavra-passe
+This is the name associated with your creator account.	C’est le nom associé à votre compte de créateur.	Este es el nombre asociado a tu cuenta de creador.	Dies ist der Name deines Creator-Kontos.	Este é o nome associado à sua conta de criador.
+We could not save your name. Check your connection and try again.	Impossible d’enregistrer votre nom. Vérifiez votre connexion et réessayez.	No se pudo guardar tu nombre. Comprueba la conexión e inténtalo de nuevo.	Dein Name konnte nicht gespeichert werden. Prüfe deine Verbindung und versuche es erneut.	Não foi possível guardar o seu nome. Verifique a ligação e tente novamente.
+Your name has been saved.	Votre nom a été enregistré.	Tu nombre se ha guardado.	Dein Name wurde gespeichert.	O seu nome foi guardado.
 Video not saved for this version.	Aucune vidéo n’a été conservée pour cette version.	No se guardó ningún vídeo para esta versión.	Für diese Version wurde kein Video gespeichert.	Não foi guardado um vídeo para esta versão.
 There were changes on both devices. ReviewFlow kept your local changes and synced them to your account.	Des modifications ont été apportées sur les deux appareils. ReviewFlow a conservé vos modifications locales et les a synchronisées avec votre compte.	Hubo cambios en ambos dispositivos. ReviewFlow conservó tus cambios locales y los sincronizó con tu cuenta.	Auf beiden Geräten gab es Änderungen. ReviewFlow hat deine lokalen Änderungen beibehalten und mit deinem Konto synchronisiert.	Houve alterações nos dois dispositivos. O ReviewFlow manteve as alterações locais e sincronizou-as com a sua conta.
 The project could not be queued for cloud deletion. It remains in Trash; please try again.	Le projet n’a pas pu être ajouté à la file de suppression cloud. Il reste dans la corbeille ; veuillez réessayer.	No se pudo programar la eliminación del proyecto en la nube. El proyecto sigue en la papelera; inténtalo de nuevo.	Das Projekt konnte nicht für die Cloud-Löschung vorgemerkt werden. Es bleibt im Papierkorb; bitte versuche es erneut.	Não foi possível agendar a eliminação do projeto na nuvem. O projeto permanece no lixo; tente novamente.
