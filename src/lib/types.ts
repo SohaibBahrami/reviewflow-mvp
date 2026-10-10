@@ -13,6 +13,8 @@ export interface ProjectVersionSnapshot {
   version: number
   status: 'in_review' | 'approved' | 'completed'
   archivedAt: string
+  localVideoId?: string
+  localVideoName?: string
   comments: ReviewComment[]
 }
 
@@ -28,6 +30,7 @@ export interface Project {
   createdAt: string
   shareToken: string
   localVideoId?: string
+  localVideoName?: string
   localVideoUrl?: string
   comments: ReviewComment[]
   versionHistory: ProjectVersionSnapshot[]
