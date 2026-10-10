@@ -60,6 +60,17 @@ function toCloudVersion(version, number, status, createdAt, comments) {
   }
 }
 
+export function projectPayloadSignature(project) {
+  const serialized = JSON.stringify(projectToCloudPayload(project))
+  // FNV-1a 64-bit is used only as a compact local change detector, not for security.
+  let hash = 14695981039346656037n
+  for (let index = 0; index < serialized.length; index += 1) {
+    hash ^= BigInt(serialized.charCodeAt(index))
+    hash = BigInt.asUintN(64, hash * 1099511628211n)
+  }
+  return hash.toString(16).padStart(16, '0')
+}
+
 export function projectToCloudPayload(project) {
   const history = (Array.isArray(project.versionHistory) ? project.versionHistory : [])
     .map((version) => toCloudVersion(
