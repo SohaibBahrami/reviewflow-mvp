@@ -302,7 +302,7 @@ export function VideoReview({ project, onBack, onClientPreview, onUpdate, onDele
             ))}
           </div>
 
-          {!previewVersion && project.versionHistory.length > 0 && (
+          {!previewVersion && !showNewVersionForm && project.versionHistory.length > 0 && (
             <section className="version-history" aria-label={t('Previous versions')}>
               <p className="eyebrow">{t('Previous versions')}</p>
               <p className="muted version-history-note">{t('Feedback from earlier versions is kept here for reference.')}</p>
