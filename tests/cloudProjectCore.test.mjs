@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs'
 import {
   cloudRowToProject,
   normalizeProjectForCloud,
+  projectPayloadSignature,
   projectToCloudPayload,
 } from '../src/lib/cloudProjectCore.js'
 
@@ -132,4 +133,28 @@ test('cloud database sync stays owner-scoped and does not expose the service rol
   assert.match(schema, /alter table public\.projects enable row level security/i)
   assert.doesNotMatch(migration, /grant execute on function public\.sync_reviewflow_project\(jsonb\) to anon/i)
   assert.doesNotMatch(appSources, /service[_-]?role/i)
+})
+
+
+test('project payload signatures are compact and ignore browser-local video references', () => {
+  const project = makeProject()
+  const otherLocalCache = {
+    ...project,
+    localVideoId: 'different-local-id',
+    localVideoName: 'renamed-on-this-device.mp4',
+    localVideoUrl: 'blob:different',
+  }
+
+  assert.match(projectPayloadSignature(project), /^[0-9a-f]{16}$/)
+  assert.equal(projectPayloadSignature(project), projectPayloadSignature(otherLocalCache))
+  assert.notEqual(projectPayloadSignature(project), projectPayloadSignature({
+    ...project,
+    comments: project.comments.map((comment) => ({ ...comment, text: 'Changed feedback' })),
+  }))
+})
+
+test('cloud conflict messages are complete across all supported locales', () => {
+  const core = readFileSync(new URL('../src/lib/i18nCore.js', import.meta.url), 'utf8')
+  assert.match(core, /There were changes on both devices\. ReviewFlow kept your local changes and synced them to your account\./)
+  assert.match(core, /Cloud sync history could not be saved in this browser\./)
 })
