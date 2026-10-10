@@ -215,7 +215,15 @@ No feedback was recorded for this version.	Aucun commentaire n’a été enregis
 Open	Ouvert	Abierto	Offen	Aberto
 Previous versions	Versions précédentes	Versiones anteriores	Vorherige Versionen	Versões anteriores
 Resolved	Résolu	Resuelto	Erledigt	Resolvido
-Version feedback count	Nombre de commentaires : {count}	Comentarios: {count}	Feedback: {count}	Comentários: {count}`.trim()
+Version feedback count	Nombre de commentaires : {count}	Comentarios: {count}	Feedback: {count}	Comentários: {count}
+Choose a replacement video to start version {version}.	Choisissez une nouvelle vidéo pour démarrer la version {version}.	Elige un vídeo de reemplazo para iniciar la versión {version}.	Wähle ein Ersatzvideo, um Version {version} zu starten.	Escolha um vídeo de substituição para iniciar a versão {version}.
+Create version	Créer une version	Crear versión	Version erstellen	Criar versão
+Preview video	Prévisualiser la vidéo	Vista previa del vídeo	Video ansehen	Pré-visualizar vídeo
+Return to current version	Revenir à la version actuelle	Volver a la versión actual	Zur aktuellen Version zurückkehren	Voltar à versão atual
+Version {version} feedback	Commentaires de la version {version}	Comentarios de la versión {version}	Feedback zu Version {version}	Feedback da versão {version}
+You are viewing an archived version. Feedback is read-only.	Vous consultez une version archivée. Les commentaires sont en lecture seule.	Estás viendo una versión archivada. Los comentarios son de solo lectura.	Du siehst eine archivierte Version. Das Feedback ist schreibgeschützt.	Está a ver uma versão arquivada. O feedback é só de leitura.
+Video not saved for this version.	Aucune vidéo n’a été conservée pour cette version.	No se guardó ningún vídeo para esta versión.	Für diese Version wurde kein Video gespeichert.	Não foi guardado um vídeo para esta versão.
+The saved video for this version could not be found. It may have been removed from browser storage.	La vidéo enregistrée pour cette version est introuvable. Elle a peut-être été supprimée du stockage du navigateur.	No se encuentra el vídeo guardado de esta versión. Puede que se haya eliminado del almacenamiento del navegador.	Das gespeicherte Video dieser Version wurde nicht gefunden. Es wurde möglicherweise aus dem Browserspeicher entfernt.	Não foi possível encontrar o vídeo guardado desta versão. Pode ter sido removido do armazenamento do navegador.`.trim()
 
 const rows = rowsText.split('\n').filter((line) => line.length > 0).map((line) => {
   const parts = line.split('\t')
