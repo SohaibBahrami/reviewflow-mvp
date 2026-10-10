@@ -103,3 +103,33 @@ test('a remote-only version never inherits a video from a different local versio
   assert.equal(restored.localVideoUrl, undefined)
   assert.equal(restored.versionHistory[0]?.localVideoId, undefined)
 })
+
+
+test('trashed projects retain their trash state but preserve a valid review state for the current version', () => {
+  const payload = projectToCloudPayload(makeProject({
+    status: 'trashed',
+    statusBeforeTrash: 'approved',
+    trashedAt: '2026-10-10T12:00:00.000Z',
+  }))
+  assert.equal(payload.status, 'trashed')
+  assert.equal(payload.status_before_trash, 'approved')
+  assert.equal(payload.versions.at(-1).status, 'approved')
+})
+
+test('cloud database sync stays owner-scoped and does not expose the service role to the browser', () => {
+  const fs = require('node:fs')
+  const migration = fs.readFileSync(new URL('../supabase/migrations/20261010000000_cloud_project_sync.sql', import.meta.url), 'utf8')
+  const schema = fs.readFileSync(new URL('../supabase/schema.sql', import.meta.url), 'utf8')
+  const appSources = [
+    fs.readFileSync(new URL('../src/lib/supabase.ts', import.meta.url), 'utf8'),
+    fs.readFileSync(new URL('../src/lib/cloudProjectStore.ts', import.meta.url), 'utf8'),
+  ].join('\n')
+
+  assert.match(migration, /security invoker/i)
+  assert.match(migration, /auth\.uid\(\)/)
+  assert.match(migration, /where public\.projects\.owner_id = v_owner_id/i)
+  assert.match(migration, /grant execute on function public\.sync_reviewflow_project\(jsonb\) to authenticated/i)
+  assert.match(schema, /alter table public\.projects enable row level security/i)
+  assert.doesNotMatch(migration, /grant execute on function public\.sync_reviewflow_project\(jsonb\) to anon/i)
+  assert.doesNotMatch(appSources, /service[_-]?role/i)
+})
