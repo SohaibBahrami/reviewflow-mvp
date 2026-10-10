@@ -12,7 +12,11 @@ export function AuthView({ onDone }: { onDone: () => void }) {
   const [session, setSession] = useState<Session | null>(null)
   const [checkingSession, setCheckingSession] = useState(true)
   const [email, setEmail] = useState('')
+  const [creatorName, setCreatorName] = useState('')
+  const [displayName, setDisplayName] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
@@ -55,18 +59,37 @@ export function AuthView({ onDone }: { onDone: () => void }) {
     }
   }, [t])
 
+  useEffect(() => {
+    setDisplayName(String(session?.user.user_metadata?.display_name ?? ''))
+  }, [session?.user.id, session?.user.user_metadata?.display_name])
+
   async function submit(event: FormEvent) {
     event.preventDefault()
     if (!client) return
 
     setError('')
     setMessage('')
-    setLoading(true)
 
+    if (mode === 'sign-up') {
+      if (!creatorName.trim()) {
+        setError(t('Name is required.'))
+        return
+      }
+      if (password !== confirmPassword) {
+        setError(t('Passwords do not match.'))
+        return
+      }
+    }
+
+    setLoading(true)
     try {
       const result = mode === 'sign-in'
         ? await client.auth.signInWithPassword({ email: email.trim(), password })
-        : await client.auth.signUp({ email: email.trim(), password })
+        : await client.auth.signUp({
+            email: email.trim(),
+            password,
+            options: { data: { display_name: creatorName.trim() } },
+          })
 
       if (result.error) {
         setError(t('Your email or password could not be accepted. Check your details and try again.'))
@@ -76,13 +99,44 @@ export function AuthView({ onDone }: { onDone: () => void }) {
       if (mode === 'sign-up' && !result.data.session) {
         setMessage(t('Check your email to confirm your account, then sign in.'))
         setMode('sign-in')
+        setPassword('')
+        setConfirmPassword('')
         return
       }
 
       setPassword('')
+      setConfirmPassword('')
+      if (mode === 'sign-up') setCreatorName('')
     } catch (reason) {
       console.error('ReviewFlow account request failed.', reason)
       setError(t('We could not complete that account request. Check your connection and try again.'))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function saveProfile(event: FormEvent) {
+    event.preventDefault()
+    if (!client) return
+    const cleanName = displayName.trim()
+    if (!cleanName) {
+      setError(t('Name is required.'))
+      return
+    }
+
+    setError('')
+    setMessage('')
+    setLoading(true)
+    try {
+      const { error: updateError } = await client.auth.updateUser({
+        data: { display_name: cleanName },
+      })
+      if (updateError) throw updateError
+      setDisplayName(cleanName)
+      setMessage(t('Profile saved.'))
+    } catch (reason) {
+      console.error('ReviewFlow could not update the creator profile.', reason)
+      setError(t('We could not save your profile. Check your connection and try again.'))
     } finally {
       setLoading(false)
     }
@@ -136,9 +190,19 @@ export function AuthView({ onDone }: { onDone: () => void }) {
             <strong>{t('Your account is connected.')}</strong>
             <span>{t('After cloud database setup, project details, versions, and feedback sync to this account. Video files remain in this browser for now.')}</span>
           </div>
-          {error && <p className="form-error" role="alert">{error}</p>}
+          <form className="form-card auth-form profile-form" onSubmit={saveProfile}>
+            <label>
+              {t('Creator name')}
+              <input value={displayName} onChange={(event) => { setDisplayName(event.target.value); setError(''); setMessage('') }} placeholder={t('Your name')} autoComplete="name" maxLength={80} required />
+            </label>
+            {error && <p className="form-error" role="alert">{error}</p>}
+            {message && <p className="form-success" role="status">{message}</p>}
+            <button className="button button-primary" type="submit" disabled={loading}>
+              {loading ? t('Working…') : t('Save profile')}
+            </button>
+          </form>
           <div className="auth-actions">
-            <button className="button button-primary" onClick={onDone}>{t('Back to projects')}</button>
+            <button className="button button-secondary" onClick={onDone}>{t('Back to projects')}</button>
             <button className="button button-secondary" onClick={() => void signOut()}>{t('Sign out')}</button>
           </div>
         </div>
@@ -154,20 +218,42 @@ export function AuthView({ onDone }: { onDone: () => void }) {
         <p className="hero-copy">{t('When cloud sync is configured, project details, versions, and feedback are saved to this account. Video files remain in this browser for now.')}</p>
 
         <form className="form-card auth-form" onSubmit={submit}>
+          {mode === 'sign-up' && (
+            <label>
+              {t('Creator name')}
+              <input value={creatorName} onChange={(event) => { setCreatorName(event.target.value); setError('') }} placeholder={t('Your name')} autoComplete="name" maxLength={80} required />
+            </label>
+          )}
           <label>
             {t('Email')}
-            <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" autoComplete="email" required />
+            <input type="email" value={email} onChange={(event) => { setEmail(event.target.value); setError('') }} placeholder="you@example.com" autoComplete="email" required />
           </label>
           <label>
             {t('Password')}
-            <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder={t('At least 6 characters')} autoComplete={mode === 'sign-in' ? 'current-password' : 'new-password'} minLength={6} required />
+            <div className="password-field">
+              <input className="password-input" type={showPassword ? 'text' : 'password'} value={password} onChange={(event) => { setPassword(event.target.value); setError('') }} placeholder={t('At least 6 characters')} autoComplete={mode === 'sign-in' ? 'current-password' : 'new-password'} minLength={6} required />
+              <button className="password-toggle" type="button" aria-label={showPassword ? t('Hide password') : t('Show password')} aria-pressed={showPassword} onClick={() => setShowPassword((shown) => !shown)}>
+                {showPassword ? t('Hide password') : t('Show password')}
+              </button>
+            </div>
           </label>
+          {mode === 'sign-up' && (
+            <label>
+              {t('Confirm password')}
+              <div className="password-field">
+                <input className="password-input" type={showPassword ? 'text' : 'password'} value={confirmPassword} onChange={(event) => { setConfirmPassword(event.target.value); setError('') }} autoComplete="new-password" minLength={6} required aria-invalid={Boolean(error && confirmPassword !== password)} />
+                <button className="password-toggle" type="button" aria-label={showPassword ? t('Hide password') : t('Show password')} aria-pressed={showPassword} onClick={() => setShowPassword((shown) => !shown)}>
+                  {showPassword ? t('Hide password') : t('Show password')}
+                </button>
+              </div>
+            </label>
+          )}
           {error && <p className="form-error" role="alert">{error}</p>}
           {message && <p className="form-success" role="status">{message}</p>}
           <button className="button button-primary" type="submit" disabled={loading}>{loading ? t('Working…') : mode === 'sign-in' ? t('Sign in') : t('Create account')}</button>
         </form>
 
-        <button className="auth-switch" onClick={() => { setMode(mode === 'sign-in' ? 'sign-up' : 'sign-in'); setError(''); setMessage('') }}>
+        <button className="auth-switch" onClick={() => { setMode(mode === 'sign-in' ? 'sign-up' : 'sign-in'); setError(''); setMessage(''); setPassword(''); setConfirmPassword('') }}>
           {mode === 'sign-in' ? t('Need an account? Create one.') : t('Already have an account? Sign in.')}
         </button>
       </div>

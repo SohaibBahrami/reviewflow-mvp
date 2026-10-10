@@ -445,3 +445,23 @@ input:focus, textarea:focus { border-color: #aaaef1; box-shadow: 0 0 0 4px rgba(
 .version-history-video-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 0 12px 12px; }
 .version-video-name { font-size: 12px; overflow-wrap: anywhere; }
 .history-preview-error { margin: 0 0 12px; }
+
+
+/* Account form usability */
+.password-field { position: relative; display: flex; align-items: center; }
+.password-field .password-input { padding-right: 118px; }
+.password-toggle {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 8px;
+  padding: 7px 8px;
+  background: transparent;
+  color: var(--accent-strong);
+  font-size: 11px;
+  font-weight: 800;
+}
+.password-toggle:hover { background: var(--accent-soft); }
+.profile-form { padding: 0; border: 0; background: transparent; margin: 20px 0; }

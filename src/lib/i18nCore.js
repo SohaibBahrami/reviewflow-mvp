@@ -13,6 +13,15 @@ Active projects	Projets actifs	Proyectos activos	Aktive Projekte	Projetos ativos
 Active work	Travail en cours	Trabajo activo	Aktuelle Arbeit	Trabalho ativo
 Add feedback	Ajouter un commentaire	Añadir comentario	Feedback hinzufügen	Adicionar comentário
 Add the project details and your current video. After that, you can review the cut yourself or switch to the client view to test the approval flow.	Ajoutez les détails du projet et votre vidéo. Vous pourrez ensuite examiner le montage ou passer à la vue client pour tester l’approbation.	Añade los detalles del proyecto y tu vídeo. Después podrás revisar el montaje o cambiar a la vista del cliente para probar la aprobación.	Füge die Projektdetails und dein aktuelles Video hinzu. Anschließend kannst du den Schnitt selbst prüfen oder zur Kundenansicht wechseln, um den Freigabeablauf zu testen.	Adicione os detalhes do projeto e o vídeo. Depois, pode rever a edição ou mudar para a vista do cliente para testar a aprovação.
+Confirm password	Confirmez le mot de passe	Confirmar contraseña	Passwort bestätigen	Confirmar palavra-passe
+Creator name	Nom du créateur	Nombre del creador	Name des Erstellers	Nome do criador
+Hide password	Masquer le mot de passe	Ocultar contraseña	Passwort ausblenden	Ocultar palavra-passe
+Name is required.	Le nom est obligatoire.	El nombre es obligatorio.	Der Name ist erforderlich.	O nome é obrigatório.
+Passwords do not match.	Les mots de passe ne correspondent pas.	Las contraseñas no coinciden.	Passwörter stimmen nicht überein.	As palavras-passe não coincidem.
+Profile saved.	Profil enregistré.	Perfil guardado.	Profil gespeichert.	Perfil guardado.
+Save profile	Enregistrer le profil	Guardar perfil	Profil speichern	Guardar perfil
+Show password	Afficher le mot de passe	Mostrar contraseña	Passwort anzeigen	Mostrar palavra-passe
+We could not save your profile. Check your connection and try again.	Nous n’avons pas pu enregistrer votre profil. Vérifiez votre connexion et réessayez.	No pudimos guardar tu perfil. Comprueba la conexión e inténtalo de nuevo.	Dein Profil konnte nicht gespeichert werden. Prüfe deine Verbindung und versuche es erneut.	Não foi possível guardar o perfil. Verifique a ligação e tente novamente.
 Already have an account? Sign in.	Vous avez déjà un compte ? Connectez-vous.	¿Ya tienes una cuenta? Inicia sesión.	Du hast bereits ein Konto? Melde dich an.	Já tem uma conta? Inicie sessão.
 Approve this version	Approuver cette version	Aprobar esta versión	Diese Version freigeben	Aprovar esta versão
 Approved by client	Approuvée par le client	Aprobado por el cliente	Vom Kunden freigegeben	Aprovado pelo cliente
