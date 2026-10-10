@@ -363,3 +363,14 @@ These are roadmap recommendations, not claims that every competitor feature is i
 - Permanent project deletion removes all current and historical video blobs within one IndexedDB transaction. If the transaction fails, the project remains in Trash and the delete can be retried.
 - Older version snapshots without a stored video ID remain readable but cannot preview a video reference that was never recorded.
 - No runtime dependencies were added.
+
+
+## 2026-10-10 — Authenticated project metadata sync
+
+- Signed-in editor accounts now load and sync project metadata, version history, comment text/status/timestamps, trash state, and approval state through Supabase.
+- A first account sync imports existing local project metadata; UUID and legacy comment IDs are normalized before writing to UUID-backed tables.
+- Browser-local video IDs and object URLs are never sent to Supabase. Per-account local caches preserve that browser's IndexedDB references without mixing different signed-in users' caches.
+- Added an atomic `sync_reviewflow_project(jsonb)` function, executable by authenticated users only. It uses the caller's identity and relies on the existing owner-only Row Level Security policies; no service-role key is placed in the browser.
+- The Supabase schema supports completed historical versions. Existing deployments can apply `supabase/migrations/20261010000000_cloud_project_sync.sql`; fresh setups can run the updated `supabase/schema.sql`.
+- **Still not implemented:** cloud video uploads/playback and anonymous cross-device client review links. These remain the next part of the cloud workflow.
+- No runtime dependency was added.
