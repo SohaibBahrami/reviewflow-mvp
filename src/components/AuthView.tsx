@@ -216,7 +216,7 @@ export function AuthView({ onDone }: { onDone: () => void }) {
           </form>
           <div className="auth-setup-note">
             <strong>{displayName ? t('Your account is connected.') : t('Add your creator name.')}</strong>
-            <span>{t('Project details, versions, and feedback sync to this account. Video files remain in this browser for now.')}</span>
+            <span>{t('After cloud database setup, project details, versions, and feedback sync to this account. Video files remain in this browser for now.')}</span>
           </div>
           <div className="auth-actions">
             <button className="button button-primary" onClick={onDone}>{t('Back to projects')}</button>
