@@ -122,7 +122,7 @@ test('cloud database sync stays owner-scoped and does not expose the service rol
   const schema = readFileSync(new URL('../supabase/schema.sql', import.meta.url), 'utf8')
   const appSources = [
     readFileSync(new URL('../src/lib/supabase.ts', import.meta.url), 'utf8'),
-    fs.readFileSync(new URL('../src/lib/cloudProjectStore.ts', import.meta.url), 'utf8'),
+    readFileSync(new URL('../src/lib/cloudProjectStore.ts', import.meta.url), 'utf8'),
   ].join('\n')
 
   assert.match(migration, /security invoker/i)
