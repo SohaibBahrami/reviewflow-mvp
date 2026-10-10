@@ -95,6 +95,8 @@ export default function App() {
     }
 
     const storageKey = getUserProjectsStorageKey(userId)
+    setCloudDataOwnerId(null)
+    setProjects(loadProjects(storageKey, false))
     const accountCache = loadProjects(storageKey, false)
     const previousLocalOwner = getLocalDataOwner()
     const mayImportLegacyLocal = !previousLocalOwner || previousLocalOwner === userId
