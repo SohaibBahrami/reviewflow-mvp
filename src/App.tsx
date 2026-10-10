@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { ClientReview } from './components/ClientReview'
+import { RemoteClientReview } from './components/RemoteClientReview'
 import { AuthView } from './components/AuthView'
 import { ConfirmDialog } from './components/ConfirmDialog'
 import { Dashboard } from './components/Dashboard'
@@ -629,7 +630,7 @@ export default function App() {
   } else if (route.path === '/trash') {
     page = <Trash projects={projects} onBack={() => navigate('/')} onRestore={restoreProject} onDeletePermanently={requestPermanentDelete} />
   } else if (route.path === '/share') {
-    page = <section className="narrow-page"><p className="eyebrow">{t('Review link')}</p><h1>{t('This review link is no longer available.')}</h1><p className="hero-copy">{t('Ask the editor for a new link to the current video version.')}</p></section>
+    page = <RemoteClientReview shareToken={route.id ?? ''} />
   } else if (route.path === '/new') {
     page = <NewProject onCreate={createProject} />
   } else if (route.path === '/') {

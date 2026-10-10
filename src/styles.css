@@ -465,3 +465,14 @@ input:focus, textarea:focus { border-color: #aaaef1; box-shadow: 0 0 0 4px rgba(
 }
 .password-toggle:hover { background: var(--accent-soft); }
 .profile-form { padding: 0; border: 0; background: transparent; margin: 20px 0; }
+
+
+/* Remote Cloudflare Stream playback and cloud-upload status */
+.cloudflare-stream-player {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 0;
+  background: #0d0f14;
+}
+.remote-review-error { margin: 0 0 16px; }
