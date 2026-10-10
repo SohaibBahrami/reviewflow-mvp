@@ -1,5 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import {
   cloudRowToProject,
   normalizeProjectForCloud,
@@ -117,11 +118,10 @@ test('trashed projects retain their trash state but preserve a valid review stat
 })
 
 test('cloud database sync stays owner-scoped and does not expose the service role to the browser', () => {
-  const fs = require('node:fs')
-  const migration = fs.readFileSync(new URL('../supabase/migrations/20261010000000_cloud_project_sync.sql', import.meta.url), 'utf8')
-  const schema = fs.readFileSync(new URL('../supabase/schema.sql', import.meta.url), 'utf8')
+  const migration = readFileSync(new URL('../supabase/migrations/20261010000000_cloud_project_sync.sql', import.meta.url), 'utf8')
+  const schema = readFileSync(new URL('../supabase/schema.sql', import.meta.url), 'utf8')
   const appSources = [
-    fs.readFileSync(new URL('../src/lib/supabase.ts', import.meta.url), 'utf8'),
+    readFileSync(new URL('../src/lib/supabase.ts', import.meta.url), 'utf8'),
     fs.readFileSync(new URL('../src/lib/cloudProjectStore.ts', import.meta.url), 'utf8'),
   ].join('\n')
 
