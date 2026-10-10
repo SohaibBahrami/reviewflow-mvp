@@ -353,3 +353,13 @@ These are roadmap recommendations, not claims that every competitor feature is i
 - `git diff --check`: passed.
 - Added regression coverage for archive preservation, current-version separation, status reset, and source immutability.
 - `npm run build` remains unverified here because this checkout does not have React, Supabase, or Vite installed.
+
+
+## 2026-10-10 — Video files per project version
+
+- Starting a new version now requires selecting and saving a replacement video. The previous version's IndexedDB video ID and filename are archived together with its comments and approval status.
+- The new active version uses the replacement video's ID and filename and clears the old temporary object URL so the app loads the correct file.
+- Editors can preview an archived version's actual video and read-only timestamped feedback from the review screen.
+- Permanent project deletion removes all current and historical video blobs within one IndexedDB transaction. If the transaction fails, the project remains in Trash and the delete can be retried.
+- Older version snapshots without a stored video ID remain readable but cannot preview a video reference that was never recorded.
+- No runtime dependencies were added.
