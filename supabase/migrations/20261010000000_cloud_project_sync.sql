@@ -141,7 +141,7 @@ returns void
 language plpgsql
 security invoker
 set search_path = ''
-as $
+as $$
 declare
   v_owner_id uuid := auth.uid();
 begin
@@ -149,17 +149,15 @@ begin
     raise exception 'Authentication required' using errcode = '28000';
   end if;
 
+  -- Idempotent deletion lets a failed multi-project sync safely retry.
+  -- The owner predicate and RLS prevent deleting another user's project.
   delete from public.projects
   where id = target_project_id
     and owner_id = v_owner_id;
-
-  if not found then
-    raise exception 'Project does not exist or is not owned by the current user'
-      using errcode = '42501';
-  end if;
 end;
-$;
+$$;
 
 revoke all on function public.delete_reviewflow_project(uuid) from public;
 grant execute on function public.delete_reviewflow_project(uuid) to authenticated;
+
 
