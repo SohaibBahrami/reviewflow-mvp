@@ -277,3 +277,31 @@ $$;
 revoke all on function public.sync_reviewflow_project(jsonb) from public;
 grant select, insert, update, delete on public.projects, public.project_versions, public.review_comments to authenticated;
 grant execute on function public.sync_reviewflow_project(jsonb) to authenticated;
+
+create or replace function public.delete_reviewflow_project(target_project_id uuid)
+returns void
+language plpgsql
+security invoker
+set search_path = ''
+as $
+declare
+  v_owner_id uuid := auth.uid();
+begin
+  if v_owner_id is null then
+    raise exception 'Authentication required' using errcode = '28000';
+  end if;
+
+  delete from public.projects
+  where id = target_project_id
+    and owner_id = v_owner_id;
+
+  if not found then
+    raise exception 'Project does not exist or is not owned by the current user'
+      using errcode = '42501';
+  end if;
+end;
+$;
+
+revoke all on function public.delete_reviewflow_project(uuid) from public;
+grant execute on function public.delete_reviewflow_project(uuid) to authenticated;
+
