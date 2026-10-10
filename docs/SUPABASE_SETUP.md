@@ -19,14 +19,16 @@ Never commit `.env.local` or service-role keys.
 
 ## 3. Create the database tables
 
-Open Supabase's SQL Editor and run `supabase/schema.sql`.
+Open Supabase's SQL Editor and run `supabase/schema.sql`. If the tables already exist, run `supabase/migrations/20261010000000_cloud_project_sync.sql` instead to add the atomic project-sync function and allow completed historical versions.
 
-The schema keeps editor-owned data behind Row Level Security. Current Supabase guidance recommends enabling RLS on exposed tables and using policies to define least-privilege access.
+The schema keeps editor-owned data behind Row Level Security. The app calls the `sync_reviewflow_project` database function as the signed-in user; it does not use a service-role key in the browser. The function writes a complete project/version/comment snapshot atomically, and RLS ensures the caller can only sync projects they own.
 
 ## 4. Authentication
 
 The first cloud foundation supports email/password sign-up and sign-in. Supabase's current JavaScript API uses `signUp()` and `signInWithPassword()`, and the client persists the session by default.
 
-## 5. What is intentionally not migrated yet
+## 5. Current scope and limitations
 
-The existing local project store remains the active data source until the database connection is configured and tested. Video blobs also remain browser-local in this milestone. Cloud video storage and public review access are separate milestones.
+When Supabase is configured and the schema is installed, sign-in syncs project metadata, version history, comments, statuses, and approval state for the editor account. Existing local projects are imported on first account sync. Account-scoped browser caches keep local video references separate between signed-in users.
+
+Video blobs are **not uploaded** by this milestone. They remain in IndexedDB on the browser where they were selected, so a project opened on another device can show its metadata and feedback but still needs secure remote video storage before it can be reviewed end-to-end. Anonymous client review access is still disabled intentionally; a later milestone will add secure Cloudflare Stream delivery and narrow share-link endpoints.
