@@ -7,10 +7,10 @@ import { NewProject } from './components/NewProject'
 import { Shell } from './components/Shell'
 import { Trash } from './components/Trash'
 import { VideoReview } from './components/VideoReview'
-import { getLocalDataOwner, getUserProjectsStorageKey, loadProjects, saveProjects, setLocalDataOwner } from './lib/storage'
+import { getLocalDataOwner, getUserProjectsStorageKey, loadCloudSyncBaseline, loadProjects, saveCloudSyncBaseline, saveProjects, setLocalDataOwner } from './lib/storage'
 import { getSupabaseClient } from './lib/supabase'
-import { loadCloudProjects, saveCloudProject } from './lib/cloudProjectStore'
-import { cloudRowToProject, normalizeProjectForCloud, projectToCloudPayload } from './lib/cloudProjectCore.js'
+import { deleteCloudProject, loadCloudProjects, saveCloudProject } from './lib/cloudProjectStore'
+import { cloudRowToProject, normalizeProjectForCloud, projectPayloadSignature, projectToCloudPayload } from './lib/cloudProjectCore.js'
 import { deleteLocalVideos, getLocalVideo } from './lib/videoStorage'
 import { applyTheme, getTheme, toggleTheme, type Theme } from './lib/theme'
 import type { Project } from './lib/types'
@@ -34,6 +34,7 @@ export default function App() {
   const cloudSaveRevisionRef = useRef(0)
   const cloudSaveQueueRef = useRef<Promise<void>>(Promise.resolve())
   const lastCloudSignatureRef = useRef<string | null>(null)
+  const knownCloudProjectIdsRef = useRef<Set<string>>(new Set())
   const [theme, setTheme] = useState<Theme>(() => getTheme())
   const [notice, setNotice] = useState<string | null>(null)
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
@@ -87,6 +88,7 @@ export default function App() {
 
     setCloudSyncReady(false)
     lastCloudSignatureRef.current = null
+    knownCloudProjectIdsRef.current.clear()
 
     if (!userId) {
       setCloudDataOwnerId(null)
@@ -95,11 +97,14 @@ export default function App() {
     }
 
     const storageKey = getUserProjectsStorageKey(userId)
+    const previousBaseline = loadCloudSyncBaseline(userId)
     setCloudDataOwnerId(null)
     setProjects(loadProjects(storageKey, false))
     const accountCache = loadProjects(storageKey, false)
     const previousLocalOwner = getLocalDataOwner()
-    const mayImportLegacyLocal = !previousLocalOwner || previousLocalOwner === userId
+    // The shared local-only store is imported only on the first claim. Importing
+    // it again for the same account after each sign-in would duplicate legacy IDs.
+    const mayImportLegacyLocal = !previousLocalOwner
     const legacyLocal = mayImportLegacyLocal ? loadProjects() : []
     if (mayImportLegacyLocal) setLocalDataOwner(userId)
 
@@ -113,6 +118,7 @@ export default function App() {
       normalized: normalizeProjectForCloud(original),
     }))
     let localCandidates = candidateEntries.map(({ normalized }) => normalized)
+    let foundCloudConflict = false
 
     const restoreLocalFallback = () => {
       if (cancelled) return
@@ -143,10 +149,34 @@ export default function App() {
         for (const localProject of localCandidates) {
           if (cancelled) return
           const remote = remoteById.get(localProject.id)
+          const baselineSignature = previousBaseline[localProject.id]
+          const localSignature = projectPayloadSignature(localProject)
+
           if (remote) {
-            merged.push(cloudRowToProject(remote as unknown as Record<string, any>, localProject))
+            const remoteProject = cloudRowToProject(remote as unknown as Record<string, any>, localProject)
+            const remoteSignature = projectPayloadSignature(remoteProject)
+
+            if (baselineSignature && localSignature !== baselineSignature) {
+              if (remoteSignature !== baselineSignature && remoteSignature !== localSignature) {
+                foundCloudConflict = true
+              }
+              // A local edit made since the last successful sync wins, avoiding
+              // silent loss of work edited while offline.
+              await saveCloudProject(client, localProject)
+              merged.push(localProject)
+            } else {
+              // No known local edits: the remote project is the source of truth,
+              // while matching version-specific IndexedDB refs are kept locally.
+              merged.push(remoteProject)
+            }
+            migratedIds.add(localProject.id)
+          } else if (baselineSignature && localSignature === baselineSignature) {
+            // A project that was previously synced but disappeared remotely was
+            // deleted on another device. Do not resurrect an unchanged stale cache.
             migratedIds.add(localProject.id)
           } else {
+            if (baselineSignature && localSignature !== baselineSignature) foundCloudConflict = true
+            // New project, or a project edited locally after a remote deletion.
             await saveCloudProject(client, localProject)
             merged.push(localProject)
             migratedIds.add(localProject.id)
@@ -154,7 +184,15 @@ export default function App() {
         }
 
         for (const remote of remoteRows) {
-          if (!migratedIds.has(remote.id)) merged.push(cloudRowToProject(remote as unknown as Record<string, any>))
+          if (migratedIds.has(remote.id)) continue
+
+          if (previousBaseline[remote.id] && !candidatesById.has(remote.id)) {
+            // Locally deleted from this browser after its last sync; propagate the
+            // deletion instead of bringing the same project back from the cloud.
+            await deleteCloudProject(client, remote.id)
+            continue
+          }
+          merged.push(cloudRowToProject(remote as unknown as Record<string, any>))
         }
 
         const routeProject = candidateEntries.find(({ original }) => original.id === route.id)
@@ -170,9 +208,18 @@ export default function App() {
         lastCloudSignatureRef.current = JSON.stringify(
           [...localCandidates].sort((a, b) => a.id.localeCompare(b.id)).map(projectToCloudPayload),
         )
+        knownCloudProjectIdsRef.current = new Set(localCandidates.map((project) => project.id))
+        const baselineResult = saveCloudSyncBaseline(userId, Object.fromEntries(
+          localCandidates.map((project) => [project.id, projectPayloadSignature(project)]),
+        ))
         setProjects(localCandidates)
         setCloudDataOwnerId(userId)
         setCloudSyncReady(true)
+        if (foundCloudConflict) {
+          setNotice(t('There were changes on both devices. ReviewFlow kept your local changes and synced them to your account.'))
+        } else if (!baselineResult.ok) {
+          setNotice(t('Cloud sync history could not be saved in this browser.'))
+        }
       } catch (error) {
         console.error('ReviewFlow could not load or migrate cloud projects.', error)
         restoreLocalFallback()
