@@ -134,7 +134,7 @@ export function AuthView({ onDone }: { onDone: () => void }) {
           <p className="hero-copy">{session.user.email}</p>
           <div className="auth-setup-note">
             <strong>{t('Your account is connected.')}</strong>
-            <span>{t('Cloud project data will be connected to this account in the next migration step.')}</span>
+            <span>{t('After cloud database setup, project details, versions, and feedback sync to this account. Video files remain in this browser for now.')}</span>
           </div>
           {error && <p className="form-error" role="alert">{error}</p>}
           <div className="auth-actions">
