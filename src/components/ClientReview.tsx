@@ -2,6 +2,7 @@ import { useMemo, useRef, useState, type FormEvent } from 'react'
 import type { Project } from '../lib/types'
 import { formatTime, relativeDate } from '../lib/format'
 import { VideoPlayer, type VideoPlayerHandle } from './VideoPlayer'
+import { CloudflareStreamPlayer } from './CloudflareStreamPlayer'
 import { useI18n } from '../lib/i18n'
 
 interface Props {
@@ -9,9 +10,10 @@ interface Props {
   onBack?: () => void
   onUpdate: (project: Project) => void
   standalone?: boolean
+  playbackUrl?: string | null
 }
 
-export function ClientReview({ project, onBack, onUpdate, standalone = false }: Props) {
+export function ClientReview({ project, onBack, onUpdate, standalone = false, playbackUrl = null }: Props) {
   const { t, locale } = useI18n()
   const videoRef = useRef<VideoPlayerHandle | null>(null)
   const [commentText, setCommentText] = useState('')
@@ -70,7 +72,9 @@ export function ClientReview({ project, onBack, onUpdate, standalone = false }: 
 
       <div className="review-layout">
         <div className="video-panel">
-          {project.localVideoUrl ? (
+          {playbackUrl ? (
+            <CloudflareStreamPlayer ref={videoRef} src={playbackUrl} title={project.title} onTimeChange={setCurrentTime} />
+          ) : project.localVideoUrl ? (
             <VideoPlayer ref={videoRef} src={project.localVideoUrl} onTimeChange={setCurrentTime} />
           ) : (
             <div className="video-empty">

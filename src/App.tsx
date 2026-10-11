@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { ClientReview } from './components/ClientReview'
+import { RemoteClientReview } from './components/RemoteClientReview'
 import { AuthView } from './components/AuthView'
 import { ConfirmDialog } from './components/ConfirmDialog'
 import { Dashboard } from './components/Dashboard'
@@ -622,14 +623,14 @@ export default function App() {
     page = <VideoReview project={project} onBack={() => navigate('/')} onClientPreview={() => navigate(`/client/${project.id}`)} onUpdate={updateProject} onDelete={() => requestDeleteProject(project.id)} onToggleComplete={() => toggleProjectComplete(project.id)} />
   } else if (route.path === '/client' && project && project.status !== 'trashed') {
     page = <ClientReview project={project} onBack={() => navigate(`/review/${project.id}`)} onUpdate={updateProject} />
-  } else if (route.path === '/share' && sharedProject) {
+  } else if (route.path === '/share' && sharedProject && !sharedProject.cloudVideoId) {
     page = <ClientReview project={sharedProject} standalone onUpdate={updateProject} />
+  } else if (route.path === '/share') {
+    page = <RemoteClientReview shareToken={route.id ?? ''} />
   } else if (route.path === '/account') {
     page = <AuthView onDone={() => navigate('/')} />
   } else if (route.path === '/trash') {
     page = <Trash projects={projects} onBack={() => navigate('/')} onRestore={restoreProject} onDeletePermanently={requestPermanentDelete} />
-  } else if (route.path === '/share') {
-    page = <section className="narrow-page"><p className="eyebrow">{t('Review link')}</p><h1>{t('This review link is no longer available.')}</h1><p className="hero-copy">{t('Ask the editor for a new link to the current video version.')}</p></section>
   } else if (route.path === '/new') {
     page = <NewProject onCreate={createProject} />
   } else if (route.path === '/') {

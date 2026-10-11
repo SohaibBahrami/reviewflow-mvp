@@ -376,3 +376,12 @@ These are roadmap recommendations, not claims that every competitor feature is i
 - Permanent deletions are queued per account until Supabase confirms them, so an offline deletion is not silently resurrected the next time projects load.
 - **Still not implemented:** cloud video uploads/playback and anonymous cross-device client review links. These remain the next part of the cloud workflow.
 - No runtime dependency was added.
+
+
+## 2026-10-10 — Creator profile and secure share-review foundation
+
+- Added a creator display name to sign-up and profile editing, matching-password confirmation, and show/hide password controls.
+- Added direct resumable Cloudflare Stream uploads from the editor's browser; uploaded assets require signed playback URLs and server credentials never enter the client bundle.
+- Added a public Supabase Edge Function that loads only the current version for a share token, returns a short-lived signed playback URL, and handles narrow client feedback/approval operations.
+- Client links can fetch review state on another device after Edge Functions are deployed and the current video is uploaded to Cloudflare Stream.
+- Live Cloudflare upload/playback has not been smoke-tested here because account credentials are project-specific; deploy the functions and run the setup guide's cross-device test before relying on this in production.

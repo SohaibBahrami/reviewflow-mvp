@@ -31,4 +31,27 @@ The first cloud foundation supports email/password sign-up and sign-in. Supabase
 
 When Supabase is configured and the schema is installed, sign-in syncs project metadata, version history, comments, statuses, and approval state for the editor account. Existing local projects are imported on first account sync. Account-scoped browser caches keep local video references separate between signed-in users.
 
-Video blobs are **not uploaded** by this milestone. They remain in IndexedDB on the browser where they were selected, so a project opened on another device can show its metadata and feedback but still needs secure remote video storage before it can be reviewed end-to-end. Anonymous client review access is still disabled intentionally; a later milestone will add secure Cloudflare Stream delivery and narrow share-link endpoints.
+Video blobs remain in browser IndexedDB until the editor explicitly uploads them using the secure cloud-upload control. Client review links can be loaded on another device after the Edge Functions are deployed and a Cloudflare video upload is complete. Anonymous clients use a narrow share-token endpoint rather than direct access to project tables.
+
+
+## 6. Secure client review links and remote video
+
+ReviewFlow can upload a browser-local video to Cloudflare Stream and associate the private asset with its project version. Cloudflare requires a separate paid Stream account/payment method for video storage and delivery. Current published pricing is **$5 per month per 1,000 minutes of stored video capacity** and **$1 per 1,000 minutes delivered**; upload and encoding are free. Storage is purchased in 1,000-minute capacity increments, so plan on at least $5/month for the first storage block, plus usage-based delivery. See the official [Cloudflare Stream pricing](https://developers.cloudflare.com/stream/pricing/).
+
+Create a Cloudflare API token restricted to the appropriate account with Stream read/write permissions. Keep this token private.
+
+Link the Supabase CLI to this project and set the two Cloudflare secrets. Do not paste these values into source code or the browser:
+
+~~~sh
+supabase login
+supabase link --project-ref YOUR_PROJECT_REF
+supabase secrets set CLOUDFLARE_ACCOUNT_ID=YOUR_ACCOUNT_ID CLOUDFLARE_API_TOKEN=YOUR_CLOUDFLARE_API_TOKEN
+supabase functions deploy stream-upload
+supabase functions deploy share-review --no-verify-jwt
+~~~
+
+The stream-upload function requires a signed-in editor and verifies project ownership before requesting a one-time resumable upload URL. The browser uploads TUS chunks directly to Cloudflare; the Cloudflare API token stays on the server. Uploaded assets require signed playback URLs. The share-review function is public by design because client reviewers do not need an account; it accepts only an unguessable project share token and exposes the current review, narrowly scoped comment/approve actions, and a short-lived signed playback URL. It does not grant anonymous access to database tables.
+
+After deploying the functions, open a signed-in project with a video and click **Upload video to cloud**. When the upload completes, copy the review link and open it in a private browser window or on another device. Existing local videos are not automatically uploaded. A newly uploaded video may need a short time for Cloudflare to finish processing before playback becomes available.
+
+This integration still needs a real Cloudflare account/token and a cross-device smoke test before production use. Do not share private tokens or paste them into chat.
