@@ -64,9 +64,9 @@ test('permanently deleting a project also deletes its Cloudinary review copies',
 
 test('Cloudinary player owns an isolated imperative mount so dispose cannot break React child removal', () => {
   const player = read('src/components/CloudinaryVideoPlayer.tsx')
-  assert.match(player, /const mountRef = useRef<HTMLDivElement \\| null>\\(null\\)/)
-  assert.match(player, /mount\\.replaceChildren\\(video\\)/)
-  assert.match(player, /mountRef\\.current\\?\\.replaceChildren\\(\\)/)
-  assert.match(player, /player\\.dispose\\(\\)/)
-  assert.doesNotMatch(player, /<video\\s*id=\\{playerId\\}/, 'React must not own the element Cloudinary removes')
+  assert.ok(player.includes('const mountRef = useRef<HTMLDivElement | null>(null)'))
+  assert.ok(player.includes('mount.replaceChildren(video)'))
+  assert.ok(player.includes('mountRef.current?.replaceChildren()'))
+  assert.ok(player.includes('player.dispose()'))
+  assert.doesNotMatch(player, /<video\\s+id=\\{playerId\\}/, 'React must not own the element Cloudinary removes')
 })
