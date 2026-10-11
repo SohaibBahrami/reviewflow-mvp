@@ -571,3 +571,17 @@ input:focus, textarea:focus { border-color: #aaaef1; box-shadow: 0 0 0 4px rgba(
   font-size: 13px;
   line-height: 1.5;
 }
+
+
+/* Cloudinary owns the DOM descendants of this mount point. React only owns
+   the empty mount element itself, avoiding removeChild races on player disposal. */
+.cloudinary-player-mount {
+  width: 100%;
+  min-width: 0;
+}
+.cloudinary-player-mount .cld-video-player {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #0d0f14;
+}
