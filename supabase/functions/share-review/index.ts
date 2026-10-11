@@ -21,7 +21,9 @@ Deno.serve(async (request) => {
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     const accountId = Deno.env.get('CLOUDFLARE_ACCOUNT_ID')
     const cloudflareToken = Deno.env.get('CLOUDFLARE_API_TOKEN')
-    if (!url || !serviceKey || !accountId || !cloudflareToken) {
+    const cloudinaryCloudName = Deno.env.get('CLOUDINARY_CLOUD_NAME') || ''
+    const cloudinaryApiSecret = Deno.env.get('CLOUDINARY_API_SECRET') || ''
+    if (!url || !serviceKey) {
       return reply({ error: 'Client review is not configured.' }, 503)
     }
 
@@ -50,19 +52,38 @@ Deno.serve(async (request) => {
     if (action === 'load') {
       let playbackUrl: string | null = null
       let videoPending = false
-      if (currentVersion.video_provider === 'cloudflare' && currentVersion.video_asset_id) {
-        const tokenResponse = await fetch('https://api.cloudflare.com/client/v4/accounts/' + encodeURIComponent(accountId) + '/stream/' + encodeURIComponent(currentVersion.video_asset_id) + '/token', {
-          method: 'POST',
-          headers: { Authorization: 'Bearer ' + cloudflareToken },
-        })
-        if (tokenResponse.ok) {
-          const tokenBody = await tokenResponse.json()
-          const signedToken = tokenBody?.success && typeof tokenBody?.result?.token === 'string' ? tokenBody.result.token : null
-          if (signedToken) playbackUrl = 'https://iframe.videodelivery.net/' + signedToken
-          else videoPending = true
-        } else {
+      if (currentVersion.video_provider === 'cloudinary' && currentVersion.video_asset_id) {
+        if (!cloudinaryCloudName || !cloudinaryApiSecret) {
           videoPending = true
-          console.warn('Cloudflare playback token is not available yet:', tokenResponse.status)
+        } else {
+          const publicId = String(currentVersion.video_asset_id)
+          const transformation = 'sp_hd/f_m3u8'
+          const path = transformation + '/' + publicId + '.m3u8'
+          const digest = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(path + cloudinaryApiSecret))
+          const signatureBytes = new Uint8Array(digest)
+          const binary = Array.from(signatureBytes, (byte) => String.fromCharCode(byte)).join('')
+          const signature = btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '').slice(0, 8)
+          const encodedPublicId = publicId.split('/').map((segment: string) => encodeURIComponent(segment)).join('/')
+          playbackUrl = 'https://res.cloudinary.com/' + encodeURIComponent(cloudinaryCloudName) +
+            '/video/authenticated/s--' + signature + '--/' + transformation + '/' + encodedPublicId + '.m3u8'
+        }
+      } else if (currentVersion.video_provider === 'cloudflare' && currentVersion.video_asset_id) {
+        if (!accountId || !cloudflareToken) {
+          videoPending = true
+        } else {
+          const tokenResponse = await fetch('https://api.cloudflare.com/client/v4/accounts/' + encodeURIComponent(accountId) + '/stream/' + encodeURIComponent(currentVersion.video_asset_id) + '/token', {
+            method: 'POST',
+            headers: { Authorization: 'Bearer ' + cloudflareToken },
+          })
+          if (tokenResponse.ok) {
+            const tokenBody = await tokenResponse.json()
+            const signedToken = tokenBody?.success && typeof tokenBody?.result?.token === 'string' ? tokenBody.result.token : null
+            if (signedToken) playbackUrl = 'https://iframe.videodelivery.net/' + signedToken
+            else videoPending = true
+          } else {
+            videoPending = true
+            console.warn('Cloudflare playback token is not available yet:', tokenResponse.status)
+          }
         }
       }
 
@@ -87,6 +108,8 @@ Deno.serve(async (request) => {
           versionHistory: [],
         },
         playbackUrl,
+        playbackProvider: currentVersion.video_provider || null,
+        cloudinaryCloudName: currentVersion.video_provider === 'cloudinary' ? cloudinaryCloudName || null : null,
         videoPending,
       })
     }
