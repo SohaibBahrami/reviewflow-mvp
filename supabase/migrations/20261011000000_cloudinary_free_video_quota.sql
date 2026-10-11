@@ -65,7 +65,7 @@ begin
       using errcode = '22023';
   end if;
 
-  select coalesce(sum(case when uploaded_at is null then input_bytes else stored_bytes end), 0)
+  select coalesce(sum(greatest(input_bytes, stored_bytes)), 0)
     into v_active_bytes
   from public.cloudinary_video_reservations
   where active = true

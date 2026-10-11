@@ -31,6 +31,7 @@ test('Cloudinary uploads use only the watermarked review copy and enforce conser
   assert.match(migration, /1073741824/)
   assert.match(migration, /1800/)
   assert.match(migration, /2147483648/)
+  assert.match(migration, /greatest\(input_bytes, stored_bytes\)/)
   assert.match(migration, /grant execute on function public\.reserve_cloudinary_video_upload[\s\S]+to service_role/i)
   assert.match(docs, /do not add payment details or upgrade/i)
 })
@@ -48,6 +49,7 @@ test('client reviews use Cloudinary HLS timestamps and display a moving review w
   assert.match(review, /CloudinaryVideoPlayer/)
   assert.match(player, /currentTime\(\)/)
   assert.match(player, /player\.on\('timeupdate'/)
+  assert.match(player, /adaptiveStreaming: true/)
   assert.match(player, /REVIEW COPY/)
   assert.match(styles, /@keyframes review-copy-watermark-move/)
 })
@@ -59,6 +61,8 @@ test('permanently deleting a project also deletes its Cloudinary review copies',
   assert.match(app, /cloudVideoProvider === 'cloudinary'/)
   assert.match(edge, /if \(action === 'delete-project'\)/)
   assert.match(edge, /deleteCloudinaryResources/)
+  assert.match(edge, /public_ids\[\]/)
+  assert.match(edge, /application\/x-www-form-urlencoded/)
 })
 
 

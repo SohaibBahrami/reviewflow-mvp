@@ -66,18 +66,23 @@ async function getCloudinaryResource(config: ReturnType<typeof configuration>, p
 
 async function deleteCloudinaryResources(config: ReturnType<typeof configuration>, publicIds: string[]) {
   if (publicIds.length === 0) return true
+  const form = new URLSearchParams()
+  publicIds.forEach((publicId) => form.append('public_ids[]', publicId))
+  form.set('invalidate', 'true')
   const response = await fetch(
     'https://api.cloudinary.com/v1_1/' + encodeURIComponent(config.cloudName) + '/resources/video/authenticated',
     {
       method: 'DELETE',
       headers: {
         Authorization: 'Basic ' + btoa(config.apiKey + ':' + config.apiSecret),
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: JSON.stringify({ public_ids: publicIds, invalidate: true }),
+      body: form.toString(),
     },
   )
-  return response.ok
+  if (!response.ok) return false
+  const result = await response.json().catch(() => null)
+  return Boolean(result && result.partial !== true && publicIds.every((id) => ['deleted', 'not_found'].includes(result.deleted?.[id])))
 }
 
 Deno.serve(async (request) => {
