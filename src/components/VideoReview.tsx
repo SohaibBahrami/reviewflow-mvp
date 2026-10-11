@@ -52,6 +52,22 @@ export function VideoReview({ project, onBack, onClientPreview, onUpdate, onDele
     }
   }, [previewVideoUrl])
 
+  useEffect(() => {
+    let mounted = true
+    void getSupabaseClient()
+      .then(async (client) => {
+        if (!client) return
+        const { data, error } = await client.auth.getUser()
+        if (!mounted || error) return
+        const displayName = String(data.user?.user_metadata?.display_name ?? '').trim()
+        if (displayName) setAuthor(displayName)
+      })
+      .catch((error) => {
+        console.error('ReviewFlow could not load the creator profile for comments.', error)
+      })
+    return () => { mounted = false }
+  }, [])
+
   useEffect(() => () => {
     historyPreviewRequestRef.current += 1
   }, [])
