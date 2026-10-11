@@ -38,16 +38,41 @@ export function AuthView({ onDone }: { onDone: () => void }) {
         const { data, error: sessionError } = await supabaseClient.auth.getSession()
         if (!mounted) return
         if (sessionError) setError(t('We could not connect your account service. Check your connection and try again.'))
-        setSession(data.session)
-        setName(String(data.session?.user.user_metadata?.display_name ?? ''))
+
+        // Read the user from Supabase as well as local session storage so profile
+        // metadata doesn't get lost when this page is reopened.
+        const { data: userData, error: userError } = data.session
+          ? await supabaseClient.auth.getUser()
+          : { data: { user: null }, error: null }
+        if (!mounted) return
+        if (userError) setError(t('We could not connect your account service. Check your connection and try again.'))
+        const currentSession = data.session && userData.user
+          ? { ...data.session, user: userData.user }
+          : data.session
+        setSession(currentSession)
+        setName(String(currentSession?.user.user_metadata?.display_name ?? ''))
         setCheckingSession(false)
 
         const authState = supabaseClient.auth.onAuthStateChange((_event, nextSession) => {
-          if (mounted) {
-            setSession(nextSession)
-            if (nextSession?.user.user_metadata?.display_name) {
-              setName(String(nextSession.user.user_metadata.display_name))
+          if (!mounted) return
+          setSession((current) => {
+            if (!nextSession) return null
+            const currentName = String(current?.user.user_metadata?.display_name ?? '').trim()
+            const nextName = String(nextSession.user.user_metadata?.display_name ?? '').trim()
+            // Don't let a stale auth event erase a name just saved in this view.
+            if (current?.user.id === nextSession.user.id && currentName && !nextName) {
+              return {
+                ...nextSession,
+                user: {
+                  ...nextSession.user,
+                  user_metadata: { ...nextSession.user.user_metadata, display_name: currentName },
+                },
+              }
             }
+            return nextSession
+          })
+          if (nextSession?.user.user_metadata?.display_name) {
+            setName(String(nextSession.user.user_metadata.display_name))
           }
         })
         subscription = authState.data.subscription
@@ -258,7 +283,21 @@ export function AuthView({ onDone }: { onDone: () => void }) {
             <span className="password-input-wrap">
               <input type={showPassword ? 'text' : 'password'} value={password} onChange={(event) => setPassword(event.target.value)} placeholder={t('At least 6 characters')} autoComplete={mode === 'sign-in' ? 'current-password' : 'new-password'} minLength={6} required />
               <button className="password-toggle" type="button" onClick={() => setShowPassword((visible) => !visible)} aria-label={t(showPassword ? 'Hide password' : 'Show password')}>
-                {t(showPassword ? 'Hide' : 'Show')}
+                <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  {showPassword ? (
+                    <>
+                      <path d="M3 3l18 18" />
+                      <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
+                      <path d="M9.9 5.2A11.8 11.8 0 0 1 12 5c6.4 0 10 7 10 7a15.6 15.6 0 0 1-3.1 3.8" />
+                      <path d="M6.2 6.2C3.5 8 2 12 2 12s3.6 7 10 7c1.1 0 2.1-.2 3-.5" />
+                    </>
+                  ) : (
+                    <>
+                      <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </>
+                  )}
+                </svg>
               </button>
             </span>
           </label>
@@ -268,7 +307,21 @@ export function AuthView({ onDone }: { onDone: () => void }) {
               <span className="password-input-wrap">
                 <input type={showConfirmPassword ? 'text' : 'password'} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder={t('Re-enter your password')} autoComplete="new-password" minLength={6} required />
                 <button className="password-toggle" type="button" onClick={() => setShowConfirmPassword((visible) => !visible)} aria-label={t(showConfirmPassword ? 'Hide password' : 'Show password')}>
-                  {t(showConfirmPassword ? 'Hide' : 'Show')}
+                  <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    {showConfirmPassword ? (
+                      <>
+                        <path d="M3 3l18 18" />
+                        <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
+                        <path d="M9.9 5.2A11.8 11.8 0 0 1 12 5c6.4 0 10 7 10 7a15.6 15.6 0 0 1-3.1 3.8" />
+                        <path d="M6.2 6.2C3.5 8 2 12 2 12s3.6 7 10 7c1.1 0 2.1-.2 3-.5" />
+                      </>
+                    ) : (
+                      <>
+                        <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </>
+                    )}
+                  </svg>
                 </button>
               </span>
             </label>
