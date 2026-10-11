@@ -585,3 +585,18 @@ input:focus, textarea:focus { border-color: #aaaef1; box-shadow: 0 0 0 4px rgba(
   aspect-ratio: 16 / 9;
   background: #0d0f14;
 }
+
+
+.account-setting-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.account-setting-heading h2 { font-size: 20px; }
+.account-setting-heading .muted { margin: 5px 0 0; overflow-wrap: anywhere; }
+.account-edit-form { display: grid; gap: 16px; margin-top: 18px; }
+.account-edit-form .auth-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+@media (max-width: 520px) {
+  .account-setting-heading { align-items: flex-start; flex-direction: column; }
+}
