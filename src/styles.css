@@ -448,36 +448,39 @@ input:focus, textarea:focus { border-color: #aaaef1; box-shadow: 0 0 0 4px rgba(
 
 
 .password-input-wrap {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  position: relative;
+  display: block;
   width: 100%;
 }
 .password-input-wrap input {
+  width: 100%;
   min-width: 0;
-  flex: 1;
+  padding-right: 48px;
 }
 .password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 7px;
   display: inline-grid;
   place-items: center;
-  flex: 0 0 40px;
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   padding: 0;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface-2);
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
   color: var(--muted);
   cursor: pointer;
 }
 .password-toggle:hover,
 .password-toggle:focus-visible {
-  border-color: var(--accent);
+  background: var(--surface-2);
   color: var(--accent-strong);
 }
 .password-toggle:focus-visible {
   outline: 2px solid var(--accent);
-  outline-offset: 2px;
+  outline-offset: 1px;
 }
 .password-toggle svg { display: block; }
 .profile-form h2 {
