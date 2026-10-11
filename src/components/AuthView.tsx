@@ -12,6 +12,7 @@ export function AuthView({ onDone }: { onDone: () => void }) {
   const [session, setSession] = useState<Session | null>(null)
   const [checkingSession, setCheckingSession] = useState(true)
   const [name, setName] = useState('')
+  const [savedDisplayName, setSavedDisplayName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -50,7 +51,9 @@ export function AuthView({ onDone }: { onDone: () => void }) {
           ? { ...data.session, user: userData.user }
           : data.session
         setSession(currentSession)
-        setName(String(currentSession?.user.user_metadata?.display_name ?? ''))
+        const currentDisplayName = String(currentSession?.user.user_metadata?.display_name ?? '').trim()
+        setName(currentDisplayName)
+        setSavedDisplayName(currentDisplayName)
         setCheckingSession(false)
 
         const authState = supabaseClient.auth.onAuthStateChange((_event, nextSession) => {
@@ -72,7 +75,9 @@ export function AuthView({ onDone }: { onDone: () => void }) {
             return nextSession
           })
           if (nextSession?.user.user_metadata?.display_name) {
-            setName(String(nextSession.user.user_metadata.display_name))
+            const nextName = String(nextSession.user.user_metadata.display_name).trim()
+            setName(nextName)
+            setSavedDisplayName(nextName)
           }
         })
         subscription = authState.data.subscription
@@ -163,7 +168,9 @@ export function AuthView({ onDone }: { onDone: () => void }) {
         return
       }
       setSession((current) => current ? { ...current, user: data.user } : current)
-      setName(String(data.user.user_metadata?.display_name ?? name.trim()))
+      const savedName = String(data.user.user_metadata?.display_name ?? name.trim()).trim()
+      setName(savedName)
+      setSavedDisplayName(savedName)
       setMessage(t('Your name has been saved.'))
     } catch (reason) {
       console.error('ReviewFlow profile update failed.', reason)
@@ -211,7 +218,7 @@ export function AuthView({ onDone }: { onDone: () => void }) {
   }
 
   if (session) {
-    const displayName = String(session.user.user_metadata?.display_name ?? '').trim()
+    const displayName = savedDisplayName
     return (
       <section className="auth-page">
         <div className="auth-card">
