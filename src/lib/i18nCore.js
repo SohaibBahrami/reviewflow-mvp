@@ -9,6 +9,20 @@ export const LOCALE_OPTIONS = [
 export const COOKIE_NAMES = Object.freeze({ locale: 'reviewflow_locale', notice: 'reviewflow_cookie_notice' })
 const supported = new Set(LOCALE_OPTIONS.map(({ code }) => code))
 const rowsText = `
+Account settings	Paramètres du compte	Configuración de la cuenta	Kontoeinstellungen	Definições da conta
+Add a name so collaborators know who you are.	Ajoutez un nom pour que vos collaborateurs sachent qui vous êtes.	Añade un nombre para que tus colaboradores sepan quién eres.	Füge einen Namen hinzu, damit andere wissen, wer du bist.	Adicione um nome para que os colaboradores saibam quem é.
+Change name	Modifier le nom	Cambiar nombre	Namen ändern	Alterar nome
+Change password	Modifier le mot de passe	Cambiar contraseña	Passwort ändern	Alterar palavra-passe
+Change the password you use to sign in.	Modifiez le mot de passe que vous utilisez pour vous connecter.	Cambia la contraseña que usas para iniciar sesión.	Ändere das Passwort, mit dem du dich anmeldest.	Altere a palavra-passe que utiliza para iniciar sessão.
+Confirm new password	Confirmer le nouveau mot de passe	Confirmar nueva contraseña	Neues Passwort bestätigen	Confirmar nova palavra-passe
+Creator name	Nom du créateur	Nombre del creador	Name des Creators	Nome do criador
+New password	Nouveau mot de passe	Nueva contraseña	Neues Passwort	Nova palavra-passe
+Project details, versions, and feedback sync when cloud database storage is configured. Video files remain in this browser for now.	Les détails des projets, les versions et les commentaires se synchronisent lorsque le stockage cloud est configuré. Pour l’instant, les vidéos restent dans ce navigateur.	Los detalles de los proyectos, las versiones y los comentarios se sincronizan cuando se configura el almacenamiento en la nube. Por ahora, los vídeos permanecen en este navegador.	Projektdetails, Versionen und Feedback werden synchronisiert, sobald der Cloud-Speicher eingerichtet ist. Videodateien bleiben vorerst in diesem Browser.	Os detalhes dos projetos, versões e comentários são sincronizados quando o armazenamento na nuvem estiver configurado. Por enquanto, os vídeos permanecem neste navegador.
+Re-enter your new password	Saisissez à nouveau votre nouveau mot de passe	Vuelve a introducir la nueva contraseña	Gib dein neues Passwort erneut ein	Introduza novamente a nova palavra-passe
+Update password	Mettre à jour le mot de passe	Actualizar contraseña	Passwort aktualisieren	Atualizar palavra-passe
+We could not change your password. Check your connection and try again.	Nous n’avons pas pu modifier votre mot de passe. Vérifiez votre connexion et réessayez.	No se pudo cambiar la contraseña. Comprueba la conexión e inténtalo de nuevo.	Dein Passwort konnte nicht geändert werden. Überprüfe deine Verbindung und versuche es erneut.	Não foi possível alterar a palavra-passe. Verifique a ligação e tente novamente.
+Your new password must be at least 6 characters.	Votre nouveau mot de passe doit contenir au moins 6 caractères.	La nueva contraseña debe tener al menos 6 caracteres.	Dein neues Passwort muss mindestens 6 Zeichen lang sein.	A nova palavra-passe deve ter pelo menos 6 caracteres.
+Your password has been changed.	Votre mot de passe a été modifié.	Se ha cambiado la contraseña.	Dein Passwort wurde geändert.	A sua palavra-passe foi alterada.
 Active projects	Projets actifs	Proyectos activos	Aktive Projekte	Projetos ativos
 Active work	Travail en cours	Trabajo activo	Aktuelle Arbeit	Trabalho ativo
 Add feedback	Ajouter un commentaire	Añadir comentario	Feedback hinzufügen	Adicionar comentário
