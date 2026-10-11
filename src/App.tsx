@@ -568,7 +568,7 @@ export default function App() {
     }
 
     const hasCloudinaryReviewCopy = target.cloudVideoProvider === 'cloudinary'
-      || target.versionHistory.some((version) => version.cloudVideoProvider === 'cloudinary')
+      || (target.versionHistory || []).some((version) => version.cloudVideoProvider === 'cloudinary')
 
     if (hasCloudinaryReviewCopy) {
       try {
