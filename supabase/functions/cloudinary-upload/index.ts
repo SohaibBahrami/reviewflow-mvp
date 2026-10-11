@@ -9,7 +9,6 @@ const corsHeaders = {
 
 const MAX_FILE_BYTES = 250 * 1024 * 1024
 const MAX_VIDEO_SECONDS = 10 * 60
-const MAX_FILENAME_LENGTH = 160
 const EAGER_TRANSFORMATION = 'sp_hd/f_m3u8'
 const REVIEW_COPY_TRANSFORMATION = 'c_limit,w_1280,h_720,q_auto:good/l_text:Arial_24_bold:REVIEW%20COPY/fl_layer_apply,g_south_east,x_32,y_24'
 
@@ -178,7 +177,6 @@ Deno.serve(async (request) => {
     if (action === 'prepare') {
       const fileSize = Number(body.fileSize)
       const durationSeconds = Number(body.durationSeconds)
-      const fileName = String(body.fileName || 'reviewflow-video').replace(/[\r\n]/g, '_').slice(0, MAX_FILENAME_LENGTH)
       if (!Number.isSafeInteger(fileSize) || fileSize < 1 || fileSize > MAX_FILE_BYTES) {
         return reply({ error: 'Videos must be 250 MB or smaller on the free plan.' }, 413)
       }
