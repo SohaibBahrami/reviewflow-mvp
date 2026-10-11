@@ -20,6 +20,13 @@ export function AuthView({ onDone }: { onDone: () => void }) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [savingProfile, setSavingProfile] = useState(false)
+  const [editingName, setEditingName] = useState(false)
+  const [changingPassword, setChangingPassword] = useState(false)
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmNewPassword, setConfirmNewPassword] = useState('')
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false)
+  const [savingPassword, setSavingPassword] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
 
@@ -172,11 +179,48 @@ export function AuthView({ onDone }: { onDone: () => void }) {
       setName(savedName)
       setSavedDisplayName(savedName)
       setMessage(t('Your name has been saved.'))
+      setEditingName(false)
     } catch (reason) {
       console.error('ReviewFlow profile update failed.', reason)
       setError(t('We could not save your name. Check your connection and try again.'))
     } finally {
       setSavingProfile(false)
+    }
+  }
+
+  async function savePassword(event: FormEvent) {
+    event.preventDefault()
+    if (!client || !session) return
+
+    setError('')
+    setMessage('')
+    if (newPassword.length < 6) {
+      setError(t('Your new password must be at least 6 characters.'))
+      return
+    }
+    if (newPassword !== confirmNewPassword) {
+      setError(t('Passwords do not match.'))
+      return
+    }
+
+    setSavingPassword(true)
+    try {
+      const { error: updateError } = await client.auth.updateUser({ password: newPassword })
+      if (updateError) {
+        setError(t('We could not change your password. Check your connection and try again.'))
+        return
+      }
+      setNewPassword('')
+      setConfirmNewPassword('')
+      setShowNewPassword(false)
+      setShowConfirmNewPassword(false)
+      setChangingPassword(false)
+      setMessage(t('Your password has been changed.'))
+    } catch (reason) {
+      console.error('ReviewFlow password update failed.', reason)
+      setError(t('We could not change your password. Check your connection and try again.'))
+    } finally {
+      setSavingPassword(false)
     }
   }
 
@@ -223,32 +267,102 @@ export function AuthView({ onDone }: { onDone: () => void }) {
       <section className="auth-page">
         <div className="auth-card">
           <p className="eyebrow">{t('ReviewFlow account')}</p>
-          <h1>{t('You’re signed in.')}</h1>
+          <h1>{t('Account settings')}</h1>
           <p className="hero-copy">{session.user.email}</p>
-          <form className="form-card auth-form profile-form" onSubmit={(event) => void saveProfile(event)}>
-            <h2>{t('Creator profile')}</h2>
-            <p className="muted">{t('This is the name associated with your creator account.')}</p>
-            <label>
-              {t('Your name')}
-              <input
-                type="text"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                placeholder={t('Enter your name')}
-                autoComplete="name"
-                maxLength={80}
-                required
-              />
-            </label>
-            {error && <p className="form-error" role="alert">{error}</p>}
-            {message && <p className="form-success" role="status">{message}</p>}
-            <button className="button button-primary" type="submit" disabled={savingProfile}>
-              {savingProfile ? t('Saving…') : t('Save name')}
-            </button>
-          </form>
+
+          <div className="form-card auth-form profile-form">
+            <div className="account-setting-heading">
+              <div>
+                <h2>{t('Creator name')}</h2>
+                {displayName && !editingName && <p className="muted">{displayName}</p>}
+                {!displayName && <p className="muted">{t('Add a name so collaborators know who you are.')}</p>}
+              </div>
+              {displayName && !editingName && (
+                <button className="button button-secondary" type="button" onClick={() => { setName(displayName); setEditingName(true); setError(''); setMessage('') }}>
+                  {t('Change name')}
+                </button>
+              )}
+            </div>
+            {(!displayName || editingName) && (
+              <form className="account-edit-form" onSubmit={(event) => void saveProfile(event)}>
+                <label>
+                  {t('Your name')}
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                    placeholder={t('Enter your name')}
+                    autoComplete="name"
+                    maxLength={80}
+                    required
+                  />
+                </label>
+                <div className="auth-actions">
+                  <button className="button button-primary" type="submit" disabled={savingProfile}>
+                    {savingProfile ? t('Saving…') : t('Save name')}
+                  </button>
+                  {displayName && (
+                    <button className="button button-secondary" type="button" onClick={() => { setName(displayName); setEditingName(false); setError(''); setMessage('') }}>
+                      {t('Cancel')}
+                    </button>
+                  )}
+                </div>
+              </form>
+            )}
+          </div>
+
+          <div className="form-card auth-form profile-form">
+            <div className="account-setting-heading">
+              <div>
+                <h2>{t('Password')}</h2>
+                <p className="muted">{t('Change the password you use to sign in.')}</p>
+              </div>
+              {!changingPassword && (
+                <button className="button button-secondary" type="button" onClick={() => { setChangingPassword(true); setError(''); setMessage('') }}>
+                  {t('Change password')}
+                </button>
+              )}
+            </div>
+            {changingPassword && (
+              <form className="account-edit-form" onSubmit={(event) => void savePassword(event)}>
+                <label>
+                  {t('New password')}
+                  <span className="password-input-wrap">
+                    <input type={showNewPassword ? 'text' : 'password'} value={newPassword} onChange={(event) => setNewPassword(event.target.value)} autoComplete="new-password" minLength={6} placeholder={t('At least 6 characters')} required />
+                    <button className="password-toggle" type="button" onClick={() => setShowNewPassword((visible) => !visible)} aria-label={t(showNewPassword ? 'Hide password' : 'Show password')}>
+                      <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        {showNewPassword ? <><path d="M3 3l18 18" /><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" /></> : <><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" /><circle cx="12" cy="12" r="3" /></>}
+                      </svg>
+                    </button>
+                  </span>
+                </label>
+                <label>
+                  {t('Confirm new password')}
+                  <span className="password-input-wrap">
+                    <input type={showConfirmNewPassword ? 'text' : 'password'} value={confirmNewPassword} onChange={(event) => setConfirmNewPassword(event.target.value)} autoComplete="new-password" minLength={6} placeholder={t('Re-enter your new password')} required />
+                    <button className="password-toggle" type="button" onClick={() => setShowConfirmNewPassword((visible) => !visible)} aria-label={t(showConfirmNewPassword ? 'Hide password' : 'Show password')}>
+                      <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        {showConfirmNewPassword ? <><path d="M3 3l18 18" /><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" /></> : <><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" /><circle cx="12" cy="12" r="3" /></>}
+                      </svg>
+                    </button>
+                  </span>
+                </label>
+                <div className="auth-actions">
+                  <button className="button button-primary" type="submit" disabled={savingPassword}>
+                    {savingPassword ? t('Saving…') : t('Update password')}
+                  </button>
+                  <button className="button button-secondary" type="button" onClick={() => { setChangingPassword(false); setNewPassword(''); setConfirmNewPassword(''); setError(''); setMessage('') }}>
+                    {t('Cancel')}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+
+          {error && <p className="form-error" role="alert">{error}</p>}
+          {message && <p className="form-success" role="status">{message}</p>}
           <div className="auth-setup-note">
-            <strong>{displayName ? t('Your account is connected.') : t('Add your creator name.')}</strong>
-            <span>{t('After cloud database setup, project details, versions, and feedback sync to this account. Video files remain in this browser for now.')}</span>
+            <span>{t('Project details, versions, and feedback sync when cloud database storage is configured. Video files remain in this browser for now.')}</span>
           </div>
           <div className="auth-actions">
             <button className="button button-primary" onClick={onDone}>{t('Back to projects')}</button>
