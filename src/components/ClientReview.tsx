@@ -3,6 +3,7 @@ import type { Project } from '../lib/types'
 import { formatTime, relativeDate } from '../lib/format'
 import { VideoPlayer, type VideoPlayerHandle } from './VideoPlayer'
 import { CloudflareStreamPlayer } from './CloudflareStreamPlayer'
+import { CloudinaryVideoPlayer } from './CloudinaryVideoPlayer'
 import { useI18n } from '../lib/i18n'
 
 interface Props {
@@ -11,9 +12,11 @@ interface Props {
   onUpdate: (project: Project) => void
   standalone?: boolean
   playbackUrl?: string | null
+  playbackProvider?: string | null
+  cloudinaryCloudName?: string | null
 }
 
-export function ClientReview({ project, onBack, onUpdate, standalone = false, playbackUrl = null }: Props) {
+export function ClientReview({ project, onBack, onUpdate, standalone = false, playbackUrl = null, playbackProvider = null, cloudinaryCloudName = null }: Props) {
   const { t, locale } = useI18n()
   const videoRef = useRef<VideoPlayerHandle | null>(null)
   const [commentText, setCommentText] = useState('')
@@ -72,7 +75,16 @@ export function ClientReview({ project, onBack, onUpdate, standalone = false, pl
 
       <div className="review-layout">
         <div className="video-panel">
-          {playbackUrl ? (
+          {playbackUrl && playbackProvider === 'cloudinary' ? (
+            <CloudinaryVideoPlayer
+              ref={videoRef}
+              src={playbackUrl}
+              cloudName={cloudinaryCloudName || ''}
+              title={project.title}
+              watermarkText={(project.client || 'Client') + ' · ' + project.title + ' · REVIEW COPY'}
+              onTimeChange={setCurrentTime}
+            />
+          ) : playbackUrl ? (
             <CloudflareStreamPlayer ref={videoRef} src={playbackUrl} title={project.title} onTimeChange={setCurrentTime} />
           ) : project.localVideoUrl ? (
             <VideoPlayer ref={videoRef} src={project.localVideoUrl} onTimeChange={setCurrentTime} />
