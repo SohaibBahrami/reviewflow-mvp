@@ -104,6 +104,7 @@ export const CloudinaryVideoPlayer = forwardRef<VideoPlayerHandle, Props>(
             autoplay: false,
             preload: 'metadata',
             sourceTypes: ['hls'],
+            adaptiveStreaming: true,
             fluid: true,
             aspectRatio: '16:9',
             analytics: false,
@@ -114,7 +115,7 @@ export const CloudinaryVideoPlayer = forwardRef<VideoPlayerHandle, Props>(
           player.on('timeupdate', updateTime)
           player.on('loadedmetadata', updateTime)
           player.on('error', handleError)
-          player.source(src, { sourceTypes: ['hls'] })
+          player.source(src, { sourceTypes: ['hls'], adaptiveStreaming: true })
         })
         .catch((error) => {
           console.error('ReviewFlow could not initialize the Cloudinary video player.', error)
