@@ -252,7 +252,20 @@ Upload video to cloud	Importer la vidéo dans le cloud	Subir vídeo a la nube	Vi
 Uploading to secure video storage…	Envoi vers le stockage vidéo sécurisé…	Subiendo al almacenamiento de vídeo seguro…	Upload in den sicheren Videospeicher…	A carregar para o armazenamento seguro de vídeo…
 Video upload failed. Check your connection and try again.	Échec de l’envoi de la vidéo. Vérifiez votre connexion et réessayez.	No se pudo subir el vídeo. Comprueba la conexión e inténtalo de nuevo.	Video-Upload fehlgeschlagen. Prüfe deine Verbindung und versuche es erneut.	Falha ao carregar o vídeo. Verifique a ligação e tente novamente.
 Video uploaded. Secure client links can now play it.	Vidéo envoyée. Les liens client sécurisés peuvent maintenant la lire.	Vídeo subido. Los enlaces seguros del cliente ya pueden reproducirlo.	Video hochgeladen. Sichere Kundenlinks können es jetzt abspielen.	Vídeo carregado. Os links seguros do cliente já o podem reproduzir.
-Show	Afficher	Mostrar	Anzeigen	Mostrar`.trim()
+Show	Afficher	Mostrar	Anzeigen	Mostrar
+Your new password must be at least 6 characters.	Votre nouveau mot de passe doit contenir au moins 6 caractères.	La nueva contraseña debe tener al menos 6 caracteres.	Dein neues Passwort muss mindestens 6 Zeichen lang sein.	A nova palavra-passe deve ter pelo menos 6 caracteres.
+We could not change your password. Check your connection and try again.	Nous n’avons pas pu modifier votre mot de passe. Vérifiez votre connexion et réessayez.	No se pudo cambiar la contraseña. Comprueba la conexión e inténtalo de nuevo.	Dein Passwort konnte nicht geändert werden. Überprüfe deine Verbindung und versuche es erneut.	Não foi possível alterar a palavra-passe. Verifique a ligação e tente novamente.
+Your password has been changed.	Votre mot de passe a été modifié.	Se ha cambiado la contraseña.	Dein Passwort wurde geändert.	A sua palavra-passe foi alterada.
+Account settings	Paramètres du compte	Configuración de la cuenta	Kontoeinstellungen	Definições da conta
+Creator name	Nom du créateur	Nombre del creador	Name des Creators	Nome do criador
+Add a name so collaborators know who you are.	Ajoutez un nom pour que vos collaborateurs sachent qui vous êtes.	Añade un nombre para que tus colaboradores sepan quién eres.	Füge einen Namen hinzu, damit andere wissen, wer du bist.	Adicione um nome para que os colaboradores saibam quem é.
+Change name	Modifier le nom	Cambiar nombre	Namen ändern	Alterar nome
+Change the password you use to sign in.	Modifiez le mot de passe que vous utilisez pour vous connecter.	Cambia la contraseña que usas para iniciar sesión.	Ändere das Passwort, mit dem du dich anmeldest.	Altere a palavra-passe que utiliza para iniciar sessão.
+Change password	Modifier le mot de passe	Cambiar contraseña	Passwort ändern	Alterar palavra-passe
+New password	Nouveau mot de passe	Nueva contraseña	Neues Passwort	Nova palavra-passe
+Confirm new password	Confirmer le nouveau mot de passe	Confirmar nueva contraseña	Neues Passwort bestätigen	Confirmar nova palavra-passe
+Re-enter your new password	Saisissez à nouveau votre nouveau mot de passe	Vuelve a introducir la nueva contraseña	Gib dein neues Passwort erneut ein	Introduza novamente a nova palavra-passe
+Update password	Mettre à jour le mot de passe	Actualizar contraseña	Passwort aktualisieren	Atualizar palavra-passe`.trim()
 
 const rows = rowsText.split('\n').filter((line) => line.length > 0).map((line) => {
   const parts = line.split('\t')
