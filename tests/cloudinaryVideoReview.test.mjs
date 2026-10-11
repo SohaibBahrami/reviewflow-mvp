@@ -31,6 +31,7 @@ test('Cloudinary uploads use only the watermarked review copy and enforce conser
   assert.match(migration, /1073741824/)
   assert.match(migration, /1800/)
   assert.match(migration, /2147483648/)
+  assert.match(migration, /greatest\(input_bytes, stored_bytes\)/)
   assert.match(migration, /grant execute on function public\.reserve_cloudinary_video_upload[\s\S]+to service_role/i)
   assert.match(docs, /do not add payment details or upgrade/i)
 })
