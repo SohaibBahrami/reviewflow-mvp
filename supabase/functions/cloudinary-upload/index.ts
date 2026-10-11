@@ -82,7 +82,7 @@ async function deleteCloudinaryResources(config: ReturnType<typeof configuration
   )
   if (!response.ok) return false
   const result = await response.json().catch(() => null)
-  return Boolean(result && result.partial !== true && publicIds.every((id) => result.deleted?.[id] === 'deleted'))
+  return Boolean(result && result.partial !== true && publicIds.every((id) => ['deleted', 'not_found'].includes(result.deleted?.[id])))
 }
 
 Deno.serve(async (request) => {
