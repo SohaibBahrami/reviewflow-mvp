@@ -6,7 +6,7 @@ import { useI18n } from '../lib/i18n'
 import { startNextVersion } from '../lib/projectRules'
 import { getLocalVideo, saveLocalVideo } from '../lib/videoStorage'
 import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabase'
-import { uploadVideoToCloudflare } from '../lib/cloudVideoUpload'
+import { uploadVideoToCloudinary } from '../lib/cloudinaryVideoUpload'
 
 interface Props {
   project: Project
@@ -116,14 +116,14 @@ export function VideoReview({ project, onBack, onClientPreview, onUpdate, onDele
       const blob = await getLocalVideo(project.localVideoId)
       if (!blob) throw new Error('The saved local video could not be found.')
       const file = new File([blob], project.localVideoName || 'reviewflow-video.mp4', { type: blob.type || 'video/mp4' })
-      const videoId = await uploadVideoToCloudflare(client, {
+      const videoId = await uploadVideoToCloudinary(client, {
         projectId: project.id, versionNumber: project.version, file, onProgress: setCloudUploadProgress,
       })
-      onUpdate({ ...project, cloudVideoProvider: 'cloudflare', cloudVideoId: videoId })
+      onUpdate({ ...project, cloudVideoProvider: 'cloudinary', cloudVideoId: videoId })
       setCloudUploadMessage(t('Video uploaded. Secure client links can now play it.'))
     } catch (error) {
-      console.error('ReviewFlow could not upload the current video to Cloudflare Stream.', error)
-      setCloudUploadError(t('Video upload failed. Check your connection and try again.'))
+      console.error('ReviewFlow could not create a Cloudinary review copy.', error)
+      setCloudUploadError(error instanceof Error ? error.message : t('Video upload failed. Check your connection and try again.'))
     } finally {
       setCloudUploadProgress(null)
     }
