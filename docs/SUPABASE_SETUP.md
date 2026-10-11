@@ -1,57 +1,82 @@
 # Supabase setup
 
-ReviewFlow uses Supabase as the planned cloud foundation for editor accounts and persistent project data.
+ReviewFlow uses Supabase for editor accounts, persistent project metadata, comments, approvals, and share-link authorization. Original video files stay in the creator's browser unless the creator explicitly creates a remote review copy.
 
 ## 1. Create a Supabase project
 
-Create a project in the Supabase dashboard, then open its Connect panel and copy the project URL and publishable key. Current Supabase React guidance uses `@supabase/supabase-js` with `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in a local environment file.
+Create a project in the Supabase dashboard, then open its Connect panel and copy the project URL and publishable key. Current Supabase React guidance uses \`@supabase/supabase-js\` with \`VITE_SUPABASE_URL\` and \`VITE_SUPABASE_PUBLISHABLE_KEY\` in a local environment file.
 
 ## 2. Configure local environment
 
-Create `.env.local` in the project root:
+Create \`.env.local\` in the project root:
 
-```text
+\`\`\`text
 VITE_SUPABASE_URL=your-project-url
 VITE_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
-```
+\`\`\`
 
-Never commit `.env.local` or service-role keys.
+Never commit \`.env.local\` or service-role keys.
 
-## 3. Create the database tables
+## 3. Create or update the database schema
 
-Open Supabase's SQL Editor and run `supabase/schema.sql`. If the tables already exist, run `supabase/migrations/20261010000000_cloud_project_sync.sql` instead to add the atomic project-sync function and allow completed historical versions.
+For a new project, open Supabase's SQL Editor and run \`supabase/schema.sql\`. For an existing project with ReviewFlow tables already installed, run the migrations in order if they have not yet been applied:
 
-The schema keeps editor-owned data behind Row Level Security. The app calls the `sync_reviewflow_project` database function as the signed-in user; it does not use a service-role key in the browser. The function writes a complete project/version/comment snapshot atomically, and RLS ensures the caller can only sync projects they own.
+1. \`supabase/migrations/20261010000000_cloud_project_sync.sql\`
+2. \`supabase/migrations/20261011000000_cloudinary_free_video_quota.sql\`
 
-## 4. Authentication
+Do not rerun the original schema or migrations blindly against an existing database. The Cloudinary migration creates a private, service-role-only reservation table and an atomic upload-quota gate.
 
-The first cloud foundation supports email/password sign-up and sign-in. Supabase's current JavaScript API uses `signUp()` and `signInWithPassword()`, and the client persists the session by default.
+The project metadata sync uses \`sync_reviewflow_project\` as the signed-in editor. Row Level Security restricts editor data to its owner; anonymous clients use the narrow \`share-review\` Edge Function rather than direct table access.
 
-## 5. Current scope and limitations
+## 4. Configure Cloudinary Free
 
-When Supabase is configured and the schema is installed, sign-in syncs project metadata, version history, comments, statuses, and approval state for the editor account. Existing local projects are imported on first account sync. Account-scoped browser caches keep local video references separate between signed-in users.
+ReviewFlow's remote video option targets Cloudinary's Free plan. Cloudinary lists the plan as **$0, free forever, and no credit card required**, with 25 monthly credits shared across storage, transformations, and delivery. Check the official [pricing page](https://cloudinary.com/pricing) before using it; free service is limited and not unlimited hosting.
 
-Video blobs remain in browser IndexedDB until the editor explicitly uploads them using the secure cloud-upload control. Client review links can be loaded on another device after the Edge Functions are deployed and a Cloudflare video upload is complete. Anonymous clients use a narrow share-token endpoint rather than direct access to project tables.
+Create a Cloudinary account without adding payment details. From the Cloudinary Console, copy the **Cloud name**, **API Key**, and **API Secret**. In Supabase Dashboard → Edge Functions → Secrets, add:
 
+| Key | Value |
+|---|---|
+| \`CLOUDINARY_CLOUD_NAME\` | Cloudinary Cloud name |
+| \`CLOUDINARY_API_KEY\` | Cloudinary API Key |
+| \`CLOUDINARY_API_SECRET\` | Cloudinary API Secret |
 
-## 6. Secure client review links and remote video
+Do not add the API secret to browser variables or commit it. Supabase supplies \`SUPABASE_URL\` and \`SUPABASE_SERVICE_ROLE_KEY\` to Edge Functions automatically.
 
-ReviewFlow can upload a browser-local video to Cloudflare Stream and associate the private asset with its project version. Cloudflare requires a separate paid Stream account/payment method for video storage and delivery. Current published pricing is **$5 per month per 1,000 minutes of stored video capacity** and **$1 per 1,000 minutes delivered**; upload and encoding are free. Storage is purchased in 1,000-minute capacity increments, so plan on at least $5/month for the first storage block, plus usage-based delivery. See the official [Cloudflare Stream pricing](https://developers.cloudflare.com/stream/pricing/).
+Deploy from a checkout of the reviewed branch after its changes are merged:
 
-Create a Cloudflare API token restricted to the appropriate account with Stream read/write permissions. Keep this token private.
-
-Link the Supabase CLI to this project and set the two Cloudflare secrets. Do not paste these values into source code or the browser:
-
-~~~sh
+\`\`\`sh
 supabase login
 supabase link --project-ref YOUR_PROJECT_REF
-supabase secrets set CLOUDFLARE_ACCOUNT_ID=YOUR_ACCOUNT_ID CLOUDFLARE_API_TOKEN=YOUR_CLOUDFLARE_API_TOKEN
-supabase functions deploy stream-upload
+supabase functions deploy cloudinary-upload
 supabase functions deploy share-review --no-verify-jwt
-~~~
+\`\`\`
 
-The stream-upload function requires a signed-in editor and verifies project ownership before requesting a one-time resumable upload URL. The browser uploads TUS chunks directly to Cloudflare; the Cloudflare API token stays on the server. Uploaded assets require signed playback URLs. The share-review function is public by design because client reviewers do not need an account; it accepts only an unguessable project share token and exposes the current review, narrowly scoped comment/approve actions, and a short-lived signed playback URL. It does not grant anonymous access to database tables.
+The \`cloudinary-upload\` function requires an authenticated creator and validates project ownership. It generates a signed upload authorization, so the API secret stays server-side. The public \`share-review\` function only responds to an unguessable project share token and exposes narrowly scoped review actions.
 
-After deploying the functions, open a signed-in project with a video and click **Upload video to cloud**. When the upload completes, copy the review link and open it in a private browser window or on another device. Existing local videos are not automatically uploaded. A newly uploaded video may need a short time for Cloudflare to finish processing before playback becomes available.
+## 5. Free-plan guardrails in ReviewFlow
 
-This integration still needs a real Cloudflare account/token and a cross-device smoke test before production use. Do not share private tokens or paste them into chat.
+The application deliberately blocks uploads at these conservative limits:
+
+- Maximum 250 MB per review copy.
+- Maximum 10 minutes per video.
+- Maximum 1 GiB of input video uploads in a rolling 30-day window.
+- Maximum 30 minutes of video submitted for processing in a rolling 30-day window.
+- Maximum 2 GiB of active stored review-copy assets as tracked by ReviewFlow.
+
+Deleting a project's remote review copies frees the app's active-storage allowance. Previously uploaded files still count against the rolling upload and processing budgets for the rest of their 30-day window.
+
+Cloudinary counts usage across your whole Cloudinary account, not just ReviewFlow. These app-level limits are conservative guardrails, not a precise mirror of Cloudinary's credit meter or a guarantee against reaching the provider's free quota. Check usage in Cloudinary and **do not add payment details or upgrade**. If Cloudinary reaches the free quota, stop uploading and wait for the usage allowance to reset.
+
+## 6. What happens to videos
+
+- The original remains in the creator's browser's IndexedDB storage.
+- The creator must explicitly upload a review copy. ReviewFlow caps file size and duration before requesting authorization.
+- Cloudinary stores an authenticated review copy, resizes it to a maximum 1280×720 frame, bakes in a small "REVIEW COPY" label, and generates an HLS adaptive-streaming rendition.
+- Client feedback timestamps are read directly from the video player; clients do not type them manually.
+- A second moving watermark overlays the player to discourage casual reuse.
+
+The watermark and segmented stream are deterrents, **not copy protection**: a client can still screen-record visible playback, and an authorized review link can be shared. Do not upload material that requires guaranteed prevention of copying.
+
+## 7. Testing limitations
+
+The integration needs a real Cloudinary Free account, secrets, and a cross-device smoke test before it can be considered operational. Test a short, non-sensitive video first; confirm that the HLS rendition plays, comments capture and seek to the right timestamps, and deletion removes the stored review copy. Never paste private keys or secrets into chat or source code.

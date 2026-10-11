@@ -12,6 +12,8 @@ export function RemoteClientReview({ shareToken }: Props) {
   const { t } = useI18n()
   const [project, setProject] = useState<Project | null>(null)
   const [playbackUrl, setPlaybackUrl] = useState<string | null>(null)
+  const [playbackProvider, setPlaybackProvider] = useState<string | null>(null)
+  const [cloudinaryCloudName, setCloudinaryCloudName] = useState<string | null>(null)
   const [videoPending, setVideoPending] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -30,11 +32,15 @@ export function RemoteClientReview({ shareToken }: Props) {
       if (!data?.project) throw new Error('Review link not found.')
       setProject(data.project as Project)
       setPlaybackUrl(typeof data.playbackUrl === 'string' ? data.playbackUrl : null)
+      setPlaybackProvider(typeof data.playbackProvider === 'string' ? data.playbackProvider : null)
+      setCloudinaryCloudName(typeof data.cloudinaryCloudName === 'string' ? data.cloudinaryCloudName : null)
       setVideoPending(data.videoPending === true)
     } catch (reason) {
       console.error('ReviewFlow could not load a shared review.', reason)
       setProject(null)
       setPlaybackUrl(null)
+      setPlaybackProvider(null)
+      setCloudinaryCloudName(null)
       setError(t('Could not load this client review. Check the link and try again.'))
     } finally {
       if (showSpinner) setLoading(false)
@@ -87,7 +93,7 @@ export function RemoteClientReview({ shareToken }: Props) {
     <section>
       {error && <p className="form-error remote-review-error" role="alert">{error}</p>}
       {videoPending && <p className="shared-review-note">{t('This video is being prepared. Refresh this page in a little while.')}</p>}
-      <ClientReview project={project} playbackUrl={playbackUrl} standalone onUpdate={(next) => { void updateReview(next) }} />
+      <ClientReview project={project} playbackUrl={playbackUrl} playbackProvider={playbackProvider} cloudinaryCloudName={cloudinaryCloudName} standalone onUpdate={(next) => { void updateReview(next) }} />
     </section>
   )
 }

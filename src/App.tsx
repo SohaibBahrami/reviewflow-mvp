@@ -567,11 +567,31 @@ export default function App() {
       return
     }
 
+    const hasCloudinaryReviewCopy = target.cloudVideoProvider === 'cloudinary'
+      || (target.versionHistory || []).some((version) => version.cloudVideoProvider === 'cloudinary')
+
+    if (hasCloudinaryReviewCopy) {
+      try {
+        const client = await getSupabaseClient()
+        if (!client) throw new Error('The account service is unavailable. The project remains in Trash.')
+        const { data, error } = await client.functions.invoke('cloudinary-upload', {
+          body: { action: 'delete-project', projectId: id },
+        })
+        if (error) throw error
+        if (data?.ok !== true) throw new Error(typeof data?.error === 'string' ? data.error : 'The remote review copy could not be deleted.')
+      } catch (error) {
+        console.error('ReviewFlow could not delete the Cloudinary review copy.', error)
+        setPermanentDeleteTargetId(null)
+        setNotice(error instanceof Error ? error.message : 'The remote review copy could not be deleted. The project remains in Trash.')
+        return
+      }
+    }
+
     try {
       await deleteLocalVideos(getProjectVideoIds(target))
     } catch (error) {
       console.error('ReviewFlow could not permanently delete the project videos.', error)
-      // Keep the trashed project and all video metadata visible so the user can retry.
+      // Keep the trashed project and its metadata visible so the user can retry.
       setPermanentDeleteTargetId(null)
       setNotice(t('The video could not be deleted from browser storage. The project is still in Trash; please try again.'))
       return

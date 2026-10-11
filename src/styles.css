@@ -501,3 +501,73 @@ input:focus, textarea:focus { border-color: #aaaef1; box-shadow: 0 0 0 4px rgba(
   background: #0d0f14;
 }
 .remote-review-error { margin: 0 0 16px; }
+
+
+/* Cloudinary review-copy player. The moving watermark discourages casual reuse;
+   it is not DRM and cannot prevent screenshots or external screen recording. */
+.cloudinary-player-shell {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: #0d0f14;
+  isolation: isolate;
+}
+.cloudinary-player-shell .cld-video-player {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #0d0f14;
+}
+.review-copy-watermark {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+}
+.review-copy-watermark span {
+  position: absolute;
+  left: 0;
+  top: 0;
+  max-width: 82%;
+  overflow-wrap: anywhere;
+  padding: 7px 10px;
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 6px;
+  color: rgba(255,255,255,.78);
+  background: rgba(0,0,0,.25);
+  text-shadow: 0 1px 3px rgba(0,0,0,.75);
+  font-size: clamp(10px, 1.35vw, 15px);
+  font-weight: 800;
+  letter-spacing: .06em;
+  animation: review-copy-watermark-move 23s linear infinite alternate;
+  pointer-events: none;
+}
+@keyframes review-copy-watermark-move {
+  0% { left: 2%; top: 4%; }
+  20% { left: 56%; top: 15%; }
+  42% { left: 18%; top: 72%; }
+  64% { left: 62%; top: 55%; }
+  82% { left: 30%; top: 32%; }
+  100% { left: 5%; top: 64%; }
+}
+.cloudinary-player-error {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 10px;
+  padding: 24px;
+  text-align: center;
+  background: rgba(13,15,20,.96);
+  color: #f7f8fb;
+}
+.cloudinary-player-error span {
+  max-width: 420px;
+  color: #b6bdca;
+  font-size: 13px;
+  line-height: 1.5;
+}
