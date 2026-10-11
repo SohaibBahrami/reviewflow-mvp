@@ -75,6 +75,7 @@ export const CloudinaryVideoPlayer = forwardRef<VideoPlayerHandle, Props>(
     const { t } = useI18n()
     const playerId = 'reviewflow-player-' + useId().replace(/:/g, '')
     const playerRef = useRef<CloudinaryPlayer | null>(null)
+    const mountRef = useRef<HTMLDivElement | null>(null)
     const onTimeChangeRef = useRef(onTimeChange)
     const [playerError, setPlayerError] = useState(false)
 
@@ -97,24 +98,48 @@ export const CloudinaryVideoPlayer = forwardRef<VideoPlayerHandle, Props>(
       ensurePlayerStyles()
       void ensurePlayerScript()
         .then(() => {
-          if (!active || !window.cloudinary?.videoPlayer) return
-          player = window.cloudinary.videoPlayer(playerId, {
-            cloudName,
-            controls: true,
-            autoplay: false,
-            preload: 'metadata',
-            sourceTypes: ['hls'],
-            fluid: true,
-            aspectRatio: '16:9',
-            analytics: false,
-            cloudinaryAnalytics: false,
-            allowUsageReport: false,
-          })
-          playerRef.current = player
-          player.on('timeupdate', updateTime)
-          player.on('loadedmetadata', updateTime)
-          player.on('error', handleError)
-          player.source(src, { sourceTypes: ['hls'] })
+          const mount = mountRef.current
+          if (!active || !mount || !window.cloudinary?.videoPlayer) return
+
+          // Cloudinary Video Player takes ownership of its element and
+          // dispose() removes that element from the DOM. Create it inside an
+          // otherwise-empty mount node so React never reconciles Cloudinary's
+          // DOM mutations against a JSX-owned <video> element.
+          const video = document.createElement('video')
+          video.id = playerId
+          video.className = 'cld-video-player cld-fluid'
+          video.controls = true
+          video.playsInline = true
+          video.preload = 'metadata'
+          video.setAttribute('aria-label', title)
+          video.setAttribute('controlsList', 'nodownload noremoteplayback')
+          video.disablePictureInPicture = true
+          video.addEventListener('contextmenu', (event) => event.preventDefault())
+          mount.replaceChildren(video)
+
+          try {
+            player = window.cloudinary.videoPlayer(playerId, {
+              cloudName,
+              controls: true,
+              autoplay: false,
+              preload: 'metadata',
+              sourceTypes: ['hls'],
+              adaptiveStreaming: true,
+              fluid: true,
+              aspectRatio: '16:9',
+              analytics: false,
+              cloudinaryAnalytics: false,
+              allowUsageReport: false,
+            })
+            playerRef.current = player
+            player.on('timeupdate', updateTime)
+            player.on('loadedmetadata', updateTime)
+            player.on('error', handleError)
+            player.source(src, { sourceTypes: ['hls'], adaptiveStreaming: true })
+          } catch (error) {
+            mount.replaceChildren()
+            throw error
+          }
         })
         .catch((error) => {
           console.error('ReviewFlow could not initialize the Cloudinary video player.', error)
@@ -127,8 +152,16 @@ export const CloudinaryVideoPlayer = forwardRef<VideoPlayerHandle, Props>(
           player.off?.('timeupdate', updateTime)
           player.off?.('loadedmetadata', updateTime)
           player.off?.('error', handleError)
-          player.dispose()
+          try {
+            player.dispose()
+          } catch (error) {
+            // Disposal can already have removed the player element. React does
+            // not own the contents of this mount node, so cleanup must be safe
+            // if Cloudinary has already mutated them.
+            console.warn('Cloudinary player cleanup reported an error.', error)
+          }
         }
+        mountRef.current?.replaceChildren()
         if (playerRef.current === player) playerRef.current = null
       }
     }, [cloudName, playerId, src])
@@ -144,17 +177,7 @@ export const CloudinaryVideoPlayer = forwardRef<VideoPlayerHandle, Props>(
 
     return (
       <div className="cloudinary-player-shell">
-        <video
-          id={playerId}
-          className="cld-video-player cld-fluid"
-          controls
-          playsInline
-          preload="metadata"
-          aria-label={title}
-          controlsList="nodownload noremoteplayback"
-          disablePictureInPicture
-          onContextMenu={(event) => event.preventDefault()}
-        />
+        <div className="cloudinary-player-mount" ref={mountRef} />
         <div className="review-copy-watermark" aria-hidden="true">
           <span>{watermarkText || 'REVIEW COPY'}</span>
         </div>
